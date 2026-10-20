@@ -24,7 +24,7 @@ export const DIFFICULTY_COLOR: Record<Difficulty, string> = {
 };
 
 // Seed words (6–7 letters, common, form many sub-words). Procedurally
-// generated levels sample from this pool so we can produce 1000 unique
+// generated levels sample from this pool so we can produce 2500 unique
 // puzzles without hand-curating each one.
 const SEED_POOL: string[] = [
   'GARDEN', 'CASTLE', 'PLANET', 'OCEANS', 'WINDOW', 'MASTER', 'SILVER',
@@ -147,7 +147,7 @@ function makeLevel(id: number): Level {
   };
 }
 
-export const LEVELS: Level[] = Array.from({ length: 1000 }, (_, i) => makeLevel(i + 1));
+export const LEVELS: Level[] = Array.from({ length: 2500 }, (_, i) => makeLevel(i + 1));
 
 export function getLevel(index: number): Level {
   return LEVELS[Math.max(0, Math.min(index, LEVELS.length - 1))];
