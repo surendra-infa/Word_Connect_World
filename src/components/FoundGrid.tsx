@@ -19,8 +19,8 @@ export default function FoundGrid({ words, total, theme, lastFound }: Props) {
   }, [lastFound]);
 
   return (
-    <section className="mt-2 flex min-h-0 flex-1 flex-col rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
-      <div className="mb-2 flex shrink-0 items-center justify-between">
+    <section className="mt-2 flex max-h-40 min-h-0 flex-1 flex-col rounded-2xl bg-white/5 p-2.5 ring-1 ring-white/10">
+      <div className="mb-1.5 flex shrink-0 items-center justify-between">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-white/50">
           Found words
         </h2>
@@ -34,7 +34,7 @@ export default function FoundGrid({ words, total, theme, lastFound }: Props) {
           Words you find will land here.
         </p>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1">
+        <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1">
           {words.map((w) => (
             <div
               key={w}
@@ -46,7 +46,7 @@ export default function FoundGrid({ words, total, theme, lastFound }: Props) {
               {w.split('').map((ch, i) => (
                 <span
                   key={i}
-                  className="flex h-8 w-8 items-center justify-center rounded-full px-1 text-sm font-bold uppercase"
+                  className="flex h-7 w-7 items-center justify-center rounded-full px-1 text-xs font-bold uppercase"
                   style={{
                     backgroundColor: theme.chipBg,
                     color: theme.chipText,
