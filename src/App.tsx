@@ -257,8 +257,13 @@ export default function App() {
     resetAutoHintTimer();
     window.setTimeout(() => clearWord(), 650);
 
-    // Level completes when weighted progress reaches 100% (95% rounds up).
-    if (wordsProgressPercent(newFound) >= 100 && !showComplete) {
+    // Level completes when weighted progress reaches 100% (95% rounds up),
+    // or when every target word has been found (small levels may cap below
+    // 100% but are complete once exhausted).
+    if (
+      (wordsProgressPercent(newFound) >= 100 || newFound.length >= targetWords.length) &&
+      !showComplete
+    ) {
       const bonus = level.masteryBonus;
       setCoins((c) => c + bonus);
       setLevelCoins((c) => c + bonus);

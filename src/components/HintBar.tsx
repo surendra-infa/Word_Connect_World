@@ -97,10 +97,7 @@ export default function HintBar({
             )}
 
             <button
-              onClick={() => {
-                onUseHint();
-                setOpen(false);
-              }}
+              onClick={onUseHint}
               disabled={!canAfford}
               className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-extrabold transition active:scale-[0.98] disabled:opacity-40"
               style={

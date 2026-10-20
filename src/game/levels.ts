@@ -68,11 +68,11 @@ function makeLevel(id: number): Level {
   const seed = SEED_POOL[(id * 7 + 13) % SEED_POOL.length];
   const letters = seededShuffle(seed.split(''), id * 31 + 7);
   const formable = getFormableWords(letters);
-  // Ensure the level has a reasonable number of formable words; if a seed
-  // produces too few, fall back to a known-rich seed.
+  // Ensure the level has a rich set of formable words; if a seed produces
+  // too few, fall back to a known-rich seed.
   let finalLetters = letters;
   let formableCount = formable.length;
-  if (formableCount < 5) {
+  if (formableCount < 11) {
     const fallback = 'GARDEN';
     finalLetters = seededShuffle(fallback.split(''), id * 31 + 7);
     formableCount = getFormableWords(finalLetters).length;
