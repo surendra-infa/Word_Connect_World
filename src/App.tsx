@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, RotateCcw, Trash2 } from 'lucide-react';
+import { Check, RotateCcw, Shuffle, Trash2 } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 import WordSlot from '@/components/WordSlot';
 import LetterCircle from '@/components/LetterCircle';
@@ -388,6 +388,13 @@ export default function App() {
           </div>
 
           <div className="relative z-20 mt-2 flex shrink-0 items-center justify-center gap-3">
+            <button
+              onClick={doShuffle}
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white/80 ring-1 ring-white/15 transition hover:bg-white/15 active:scale-90"
+              aria-label="Shuffle letters"
+            >
+              <Shuffle className="h-5 w-5" />
+            </button>
             <button
               onClick={clearWord}
               className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white/80 ring-1 ring-white/15 transition hover:bg-white/15 active:scale-90"
