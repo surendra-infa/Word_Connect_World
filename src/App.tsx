@@ -73,6 +73,9 @@ export default function App() {
   const [levelCoins, setLevelCoins] = useState(0);
   const [levelScoreStart, setLevelScoreStart] = useState(0);
   const [streakBonus, setStreakBonus] = useState(0);
+  // Star-to-coin conversion and ad-doubling are one-time offers per level.
+  const [starsClaimed, setStarsClaimed] = useState(false);
+  const [coinsDoubled, setCoinsDoubled] = useState(false);
 
   // Hint state: a word being hinted at + which letter positions are revealed.
   const [hint, setHint] = useState<{ word: string; revealed: number[] } | null>(null);
@@ -118,6 +121,8 @@ export default function App() {
     setLevelScoreStart(score);
     setLevelCoins(0);
     setStreakBonus(0);
+    setStarsClaimed(false);
+    setCoinsDoubled(false);
     setShowComplete(false);
     setHint(null);
     setLettersRevealed(0);
@@ -293,6 +298,20 @@ export default function App() {
     }
   }
 
+  function claimStars() {
+    if (starsClaimed || stars <= 0) return;
+    setCoins((c) => c + stars);
+    setLevelCoins((c) => c + stars);
+    setStarsClaimed(true);
+  }
+
+  function doubleCoins() {
+    if (coinsDoubled) return;
+    setCoins((c) => c + levelCoins);
+    setLevelCoins((c) => c * 2);
+    setCoinsDoubled(true);
+  }
+
   function nextLevel() {
     if (isFinal) {
       // restart from level 1, keep coins
@@ -363,6 +382,10 @@ export default function App() {
           isFinal={isFinal}
           stars={stars}
           streakBonus={streakBonus}
+          starsClaimed={starsClaimed}
+          coinsDoubled={coinsDoubled}
+          onClaimStars={claimStars}
+          onDoubleCoins={doubleCoins}
           nextDifficulty={
             isFinal ? null : LEVELS[Math.min(levelIndex + 1, TOTAL_LEVELS - 1)].difficulty
           }
