@@ -57,7 +57,7 @@ export default function FoundGrid({ words, total, theme, lastFound }: Props) {
                 </span>
               ))}
               <span className="ml-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-white/30">
-                +{w.length * 10}
+                +{w.length <= 3 ? 20 : w.length === 4 ? 25 : 30}
               </span>
             </div>
           ))}

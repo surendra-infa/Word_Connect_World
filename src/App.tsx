@@ -240,7 +240,9 @@ export default function App() {
     }
 
     const newFound = [...found, word];
-    const earned = word.length * 10 + (word.length === level.letters.length ? 50 : 0);
+    const earned =
+      (word.length <= 3 ? 20 : word.length === 4 ? 25 : 30) +
+      (word.length === level.letters.length ? 50 : 0);
     const coinEarned = word.length;
     setScore((s) => s + earned);
     setCoins((c) => c + coinEarned);
