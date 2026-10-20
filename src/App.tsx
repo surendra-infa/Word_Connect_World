@@ -14,7 +14,7 @@ import { shuffle } from '@/game/puzzle';
 import { themeForLevel, type Theme } from '@/game/themes';
 
 const STORAGE_KEY = 'wordlink-progress-v1';
-const HINT_COST = 20;
+const HINT_COST = 60;
 const AD_ALERT_MS = 2200;
 // Free auto-hint: first letter after 30s idle, then one letter per minute.
 const AUTO_HINT_FIRST_SECONDS = 30;
@@ -389,7 +389,6 @@ export default function App() {
           coins={coins}
           level={level.id}
           difficulty={level.difficulty}
-          onShuffle={doShuffle}
           theme={theme}
         />
 
