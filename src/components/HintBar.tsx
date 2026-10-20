@@ -28,7 +28,10 @@ export default function HintBar({
       {/* Popup panel (opens upward, above the button) */}
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="fixed inset-0 z-40 bg-black/30"
+            onClick={() => setOpen(false)}
+          />
           <div
             className="animate-pop absolute bottom-full left-4 right-4 z-50 mb-2 rounded-2xl bg-white/10 p-4 shadow-2xl ring-1 ring-white/15 backdrop-blur-md"
             style={{ boxShadow: `0 -8px 30px rgba(0,0,0,0.4)` }}
@@ -80,12 +83,12 @@ export default function HintBar({
                   );
                 })}
                 <span className="ml-1 text-xs font-medium text-white/40">
-                  keep going!
+                  type it in to find it!
                 </span>
               </div>
             ) : (
               <p className="mb-3 text-sm text-white/60">
-                Reveal a letter in an unfound word for{' '}
+                Reveal an entire unfound word for{' '}
                 <span className="font-bold" style={{ color: theme.accentSoft }}>
                   {hintCost} coins
                 </span>
@@ -114,7 +117,7 @@ export default function HintBar({
               }
             >
               <Lightbulb className="h-4 w-4" strokeWidth={2.5} />
-              {canAfford ? 'Reveal a letter' : 'Not enough coins'}
+              {canAfford ? 'Reveal a word' : 'Not enough coins'}
             </button>
           </div>
         </>

@@ -147,36 +147,19 @@ export default function App() {
     window.setTimeout(() => setMessage(''), 1200);
   }
 
-  // Reveals the next letter of an unfound word — shared by manual + auto hint.
-  const revealNextHintLetter = useCallback(
+  // Reveals an entire unfound word — shared by manual + auto hint.
+  const revealHintWord = useCallback(
     (foundSnapshot: string[], prev: { word: string; revealed: number[] } | null) => {
       const foundSet = new Set(foundSnapshot);
       const remaining = targetWords.filter((w) => !foundSet.has(w));
       if (remaining.length === 0) return null;
 
-      // Prefer continuing an existing unfound hint; otherwise pick a fresh word.
+      // Prefer revealing a word the auto-hint already started showing.
       let word = prev?.word;
-      if (!word || foundSet.has(word)) {
+      if (!word || foundSet.has(word) || prev!.revealed.length === word!.length) {
         word = remaining[Math.floor(Math.random() * remaining.length)];
       }
-
-      const already = prev && prev.word === word ? prev.revealed : [];
-      const hidden = word
-        .split('')
-        .map((_, i) => i)
-        .filter((i) => !already.includes(i));
-
-      if (hidden.length === 0) {
-        // Fully revealed — start fresh on another word.
-        const freshPool = remaining.filter((w) => w !== word);
-        if (freshPool.length === 0) return prev;
-        const fresh = freshPool[Math.floor(Math.random() * freshPool.length)];
-        const firstHidden = Math.floor(Math.random() * fresh.length);
-        return { word: fresh, revealed: [firstHidden] };
-      }
-
-      const pick = hidden[Math.floor(Math.random() * hidden.length)];
-      return { word, revealed: [...already, pick].sort((a, b) => a - b) };
+      return { word, revealed: word.split('').map((_, i) => i) };
     },
     [targetWords],
   );
@@ -299,7 +282,7 @@ export default function App() {
       return;
     }
 
-    setHint((prev) => revealNextHintLetter(found, prev));
+    setHint((prev) => revealHintWord(found, prev));
     setCoins((c) => Math.max(0, c - HINT_COST));
     setHintsUsed((n) => n + 1);
     resetAutoHintTimer();
@@ -314,9 +297,8 @@ export default function App() {
       setAutoCountdown((c) => {
         if (c === null) return null;
         if (c <= 1) {
-          // Fire a free auto-hint this tick.
-          setHint((prev) => revealNextHintLetter(found, prev));
-          setHintsUsed((n) => n + 1);
+          // Fire a free auto-hint this tick (no coins, no star penalty).
+          setHint((prev) => revealHintWord(found, prev));
           return AUTO_HINT_SECONDS;
         }
         return c - 1;
@@ -324,7 +306,7 @@ export default function App() {
     }, AUTO_HINT_TICK_MS);
 
     return () => window.clearInterval(id);
-  }, [showComplete, status, autoCountdown === null, found, revealNextHintLetter]);
+  }, [showComplete, status, autoCountdown === null, found, revealHintWord]);
 
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden font-sans text-white">
