@@ -19,7 +19,7 @@ export default function FoundGrid({ words, total, theme, lastFound }: Props) {
   }, [lastFound]);
 
   return (
-    <section className="mt-2 flex max-h-40 min-h-0 flex-1 flex-col rounded-2xl bg-white/5 p-2.5 ring-1 ring-white/10">
+    <section className="mt-2 flex max-h-40 min-h-0 flex-1 flex-col rounded-2xl bg-white/5 p-2.5 shadow-[0_-1px_0_rgba(255,255,255,0.15)] ring-2 ring-white/25">
       <div className="mb-1.5 flex shrink-0 items-center justify-between">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-white/50">
           Found words
