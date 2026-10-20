@@ -393,7 +393,7 @@ export default function App() {
           theme={theme}
         />
 
-        <main className="flex min-h-0 flex-1 flex-col px-4">
+        <main className="flex min-h-0 flex-1 flex-col px-4 pb-2">
           <div className="relative z-20 shrink-0">
             <WordSlot word={currentWord} status={status} message={message} theme={theme} />
           </div>
