@@ -66,6 +66,25 @@ export default {
           '0%, 100%': { opacity: '0.5' },
           '50%': { opacity: '1' },
         },
+        'gradient-flow': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        'complete-glow': {
+          '0%, 100%': {
+            boxShadow:
+              'inset 0 2px 5px rgba(0,0,0,0.5), 0 0 18px 2px var(--bar-glow), 0 0 40px 6px var(--bar-glow)',
+          },
+          '50%': {
+            boxShadow:
+              'inset 0 2px 5px rgba(0,0,0,0.5), 0 0 28px 6px var(--bar-glow), 0 0 70px 14px var(--bar-glow)',
+          },
+        },
+        'spark-burst': {
+          '0%': { transform: 'scale(0.3)', opacity: '0' },
+          '40%': { opacity: '1' },
+          '100%': { transform: 'scale(1.6)', opacity: '0' },
+        },
         shimmer: {
           '0%': { backgroundPosition: '200% 0' },
           '100%': { backgroundPosition: '-200% 0' },
@@ -94,6 +113,9 @@ export default {
         aurora: 'aurora 26s ease-in-out infinite',
         rise: 'rise linear infinite',
         'pulse-soft': 'pulse-soft 5s ease-in-out infinite',
+        'gradient-flow': 'gradient-flow 6s ease-in-out infinite',
+        'complete-glow': 'complete-glow 2.4s ease-in-out infinite',
+        'spark-burst': 'spark-burst 900ms ease-out forwards',
         shimmer: 'shimmer 2.2s linear infinite',
         'chip-land': 'chip-land 420ms cubic-bezier(0.34, 1.56, 0.64, 1)',
         'emoji-float': 'emoji-float 1400ms ease-out forwards',
