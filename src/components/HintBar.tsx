@@ -32,10 +32,11 @@ export default function HintBar({
             className="fixed inset-0 z-40 bg-black/30"
             onClick={() => setOpen(false)}
           />
-          <div
-            className="animate-pop fixed bottom-28 left-1/2 z-50 w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl bg-white/10 p-4 shadow-2xl ring-1 ring-white/15 backdrop-blur-md"
-            style={{ boxShadow: `0 -8px 30px rgba(0,0,0,0.4)` }}
-          >
+          <div className="fixed inset-x-0 bottom-28 z-50 flex justify-center px-4">
+            <div
+              className="animate-pop w-[min(20rem,calc(100vw-2rem))] rounded-2xl bg-white/10 p-4 shadow-2xl ring-1 ring-white/15 backdrop-blur-md"
+              style={{ boxShadow: `0 -8px 30px rgba(0,0,0,0.4)` }}
+            >
             <div className="mb-3 flex items-center justify-between">
               <span className="flex items-center gap-2 text-sm font-bold text-white/80">
                 <Lightbulb
@@ -116,6 +117,7 @@ export default function HintBar({
               <Lightbulb className="h-4 w-4" strokeWidth={2.5} />
               {canAfford ? 'Reveal a word' : 'Not enough coins'}
             </button>
+            </div>
           </div>
         </>
       )}
