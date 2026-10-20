@@ -21,13 +21,18 @@ const AUTO_HINT_TICK_MS = 1000;
 
 // Level progress is percent-based: each discovered word contributes by length.
 export function wordProgressPercent(len: number): number {
-  if (len <= 3) return 10;
+  if (len <= 3) return 15;
   if (len === 4) return 20;
   return 25; // 5 and 6 letter words
 }
 
+// Progress rounds up to 100 once it reaches 95, so the last few stray
+// points never block advancing to the next level.
+const COMPLETE_THRESHOLD = 95;
+
 function wordsProgressPercent(words: string[]): number {
-  return words.reduce((sum, w) => sum + wordProgressPercent(w.length), 0);
+  const sum = words.reduce((sum, w) => sum + wordProgressPercent(w.length), 0);
+  return sum >= COMPLETE_THRESHOLD ? 100 : sum;
 }
 
 type Saved = {
@@ -250,7 +255,7 @@ export default function App() {
     resetAutoHintTimer();
     window.setTimeout(() => clearWord(), 650);
 
-    // Level completes when weighted progress reaches 100%.
+    // Level completes when weighted progress reaches 100% (95% rounds up).
     if (wordsProgressPercent(newFound) >= 100 && !showComplete) {
       const bonus = level.masteryBonus;
       setCoins((c) => c + bonus);
