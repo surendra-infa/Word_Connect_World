@@ -1,12 +1,12 @@
 /* Word Connect World service worker: cache-first shell so the installed app opens
    instantly and works offline. */
-const CACHE = 'word-connect-world-v2';
+const CACHE = 'word-connect-world-v3';
 const SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './favicon.svg',
-  './logo.svg',
+  './favicon.png',
+  './wcw-logo-3d.webp',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-512-maskable.png',
