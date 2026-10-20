@@ -1,15 +1,17 @@
 import type { Theme } from '@/game/themes';
+import { DIFFICULTY_COLOR, DIFFICULTY_LABEL, type Difficulty } from '@/game/levels';
 import { Star, Coins } from 'lucide-react';
 
 type Props = {
   score: number;
   coins: number;
   level: number;
+  difficulty: Difficulty;
   onShuffle: () => void;
   theme: Theme;
 };
 
-export default function TopBar({ score, coins, level, onShuffle, theme }: Props) {
+export default function TopBar({ score, coins, level, difficulty, onShuffle, theme }: Props) {
   return (
     <header className="flex shrink-0 items-center justify-between gap-2 px-4 pt-3 pb-2">
       <div className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 backdrop-blur-md ring-1 ring-white/15">
@@ -26,6 +28,16 @@ export default function TopBar({ score, coins, level, onShuffle, theme }: Props)
           style={{ textShadow: `0 1px 8px ${theme.accentSoft}55` }}
         >
           {level}
+        </span>
+        <span
+          className="mt-1 rounded-full px-2 py-0.5 text-[0.55rem] font-bold uppercase tracking-wider"
+          style={{
+            color: DIFFICULTY_COLOR[difficulty],
+            backgroundColor: `${DIFFICULTY_COLOR[difficulty]}1f`,
+            boxShadow: `inset 0 0 0 1px ${DIFFICULTY_COLOR[difficulty]}55`,
+          }}
+        >
+          {DIFFICULTY_LABEL[difficulty]}
         </span>
       </div>
 

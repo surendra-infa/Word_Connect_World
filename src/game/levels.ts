@@ -11,6 +11,18 @@ export type Level = {
   difficulty: Difficulty;
 };
 
+export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
+  easy: 'Easy',
+  medium: 'Medium',
+  hard: 'Hard',
+};
+
+export const DIFFICULTY_COLOR: Record<Difficulty, string> = {
+  easy: '#4ade80',
+  medium: '#fbbf24',
+  hard: '#f87171',
+};
+
 // Seed words (6–7 letters, common, form many sub-words). Procedurally
 // generated levels sample from this pool so we can produce 1000 unique
 // puzzles without hand-curating each one.
@@ -42,47 +54,55 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
   return out;
 }
 
-// Difficulty per the spec: levels 1–10 easy, then repeating 15-level blocks
-// of 5 easy → 5 medium → 5 hard up to 1000.
-function difficultyFor(levelNum: number): Difficulty {
+// Levels 1–10 are easy so new players learn the mechanics. After that the
+// game alternates in 5-level blocks: 5 medium, 5 hard, 5 medium, ...
+export function difficultyFor(levelNum: number): Difficulty {
   if (levelNum <= 10) return 'easy';
-  const idx = (levelNum - 11) % 15;
-  if (idx < 5) return 'easy';
-  if (idx < 10) return 'medium';
-  return 'hard';
+  return Math.floor((levelNum - 11) / 5) % 2 === 0 ? 'medium' : 'hard';
 }
 
-function goalFor(diff: Difficulty, formableCount: number): number {
-  // Easy: reach ~60% of formable words (min 5). Medium: 75%. Hard: 100%.
-  if (diff === 'easy') return Math.max(5, Math.round(formableCount * 0.6));
-  if (diff === 'medium') return Math.max(7, Math.round(formableCount * 0.78));
-  return Math.max(8, formableCount);
+// Hard mode only accepts words of 4+ letters — short words no longer count,
+// which is what makes hard levels genuinely harder despite the smaller goal.
+export function levelTargetWords(level: Level): string[] {
+  const all = getFormableWords(level.letters);
+  return level.difficulty === 'hard' ? all.filter((w) => w.length >= 4) : all;
+}
+
+function goalFor(diff: Difficulty, targetCount: number): number {
+  // Easy: ~60% of available words (any count). Medium: at most 35.
+  // Hard: at most 25 (of only 4+ letter words).
+  if (diff === 'easy') return Math.max(5, Math.round(targetCount * 0.6));
+  if (diff === 'medium') return Math.min(35, Math.max(8, targetCount));
+  return Math.min(25, Math.max(10, targetCount));
 }
 
 function bonusFor(diff: Difficulty): number {
   return diff === 'easy' ? 15 : diff === 'medium' ? 25 : 40;
 }
 
+const MIN_WORDS: Record<Difficulty, number> = { easy: 11, medium: 18, hard: 15 };
+
+function targetsFor(letters: string[], diff: Difficulty): string[] {
+  const all = getFormableWords(letters);
+  return diff === 'hard' ? all.filter((w) => w.length >= 4) : all;
+}
+
 function makeLevel(id: number): Level {
   const diff = difficultyFor(id);
   const seed = SEED_POOL[(id * 7 + 13) % SEED_POOL.length];
-  const letters = seededShuffle(seed.split(''), id * 31 + 7);
-  const formable = getFormableWords(letters);
-  // Ensure the level has a rich set of formable words; if a seed produces
-  // too few, fall back to a known-rich seed.
-  let finalLetters = letters;
-  let formableCount = formable.length;
-  if (formableCount < 11) {
-    const fallback = 'GARDEN';
-    finalLetters = seededShuffle(fallback.split(''), id * 31 + 7);
-    formableCount = getFormableWords(finalLetters).length;
+  let letters = seededShuffle(seed.split(''), id * 31 + 7);
+  let targets = targetsFor(letters, diff);
+  // If a seed produces too few valid words for this difficulty, fall back to
+  // a known-rich seed.
+  if (targets.length < MIN_WORDS[diff]) {
+    letters = seededShuffle('GARDEN'.split(''), id * 31 + 7);
+    targets = targetsFor(letters, diff);
   }
-  const goal = goalFor(diff, formableCount);
   return {
     id,
     name: seed.charAt(0) + seed.slice(1).toLowerCase(),
-    letters: finalLetters,
-    goal,
+    letters,
+    goal: goalFor(diff, targets.length),
     masteryBonus: bonusFor(diff),
     difficulty: diff,
   };
@@ -92,10 +112,6 @@ export const LEVELS: Level[] = Array.from({ length: 1000 }, (_, i) => makeLevel(
 
 export function getLevel(index: number): Level {
   return LEVELS[Math.max(0, Math.min(index, LEVELS.length - 1))];
-}
-
-export function levelTargetWords(level: Level): string[] {
-  return getFormableWords(level.letters);
 }
 
 export const TOTAL_LEVELS = LEVELS.length;

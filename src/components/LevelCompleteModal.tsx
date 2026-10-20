@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Coins, Sparkles, Star, Trophy } from 'lucide-react';
+import { DIFFICULTY_COLOR, DIFFICULTY_LABEL, type Difficulty } from '@/game/levels';
 
 type Props = {
   levelNumber: number;
@@ -10,6 +11,7 @@ type Props = {
   coinsEarned: number;
   isFinal: boolean;
   stars: number;
+  nextDifficulty: Difficulty | null;
   onNext: () => void;
 };
 
@@ -22,6 +24,7 @@ export default function LevelCompleteModal({
   coinsEarned,
   isFinal,
   stars,
+  nextDifficulty,
   onNext,
 }: Props) {
   useEffect(() => {
@@ -57,9 +60,21 @@ export default function LevelCompleteModal({
             {isFinal ? 'Champion!' : `Level ${levelNumber}`}
           </h2>
           <p className="mt-1 text-sm text-white/60">
-            {isFinal
-              ? `You conquered all ${totalLevels} levels.`
-              : `Get ready for level ${levelNumber + 1}`}
+            {isFinal ? (
+              `You conquered all ${totalLevels} levels.`
+            ) : nextDifficulty ? (
+              <>
+                Get ready for level {levelNumber + 1}{' '}
+                <span
+                  className="font-bold uppercase"
+                  style={{ color: DIFFICULTY_COLOR[nextDifficulty] }}
+                >
+                  ({DIFFICULTY_LABEL[nextDifficulty]})
+                </span>
+              </>
+            ) : (
+              `Get ready for level ${levelNumber + 1}`
+            )}
           </p>
 
           <div className="mt-4 flex items-center justify-center gap-2">

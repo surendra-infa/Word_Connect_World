@@ -356,6 +356,9 @@ export default function App() {
           coinsEarned={levelCoins}
           isFinal={isFinal}
           stars={stars}
+          nextDifficulty={
+            isFinal ? null : LEVELS[Math.min(levelIndex + 1, TOTAL_LEVELS - 1)].difficulty
+          }
           onNext={nextLevel}
         />
       )}
@@ -367,6 +370,7 @@ export default function App() {
           score={score}
           coins={coins}
           level={level.id}
+          difficulty={level.difficulty}
           onShuffle={doShuffle}
           theme={theme}
         />
