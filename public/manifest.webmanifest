@@ -1,8 +1,8 @@
 {
-  "name": "Word Connect",
-  "short_name": "Word Connect",
+  "name": "Word Connect World",
+  "short_name": "Word Connect World",
   "description": "Find hidden words from a circle of letters. 2500 levels of word puzzles.",
-  "id": "word-connect",
+  "id": "word-connect-world",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
