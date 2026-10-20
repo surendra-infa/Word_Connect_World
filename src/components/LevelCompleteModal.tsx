@@ -11,9 +11,7 @@ type Props = {
   isFinal: boolean;
   stars: number;
   streakBonus: number;
-  starsClaimed: boolean;
   coinsDoubled: boolean;
-  onClaimStars: () => void;
   onDoubleCoins: () => void;
   nextDifficulty: Difficulty | null;
   onNext: () => void;
@@ -28,9 +26,7 @@ export default function LevelCompleteModal({
   isFinal,
   stars,
   streakBonus,
-  starsClaimed,
   coinsDoubled,
-  onClaimStars,
   onDoubleCoins,
   nextDifficulty,
   onNext,
@@ -155,31 +151,8 @@ export default function LevelCompleteModal({
             )}
           </div>
 
-          {/* Star conversion + ad doubling rewards */}
+          {/* Ad doubling reward */}
           <div className="mt-3 space-y-2">
-            {!starsClaimed && stars > 0 && (
-              <button
-                onClick={onClaimStars}
-                className="flex w-full items-center justify-between rounded-xl bg-amber-400/10 px-4 py-3 ring-1 ring-amber-300/30 transition hover:bg-amber-400/20 active:scale-[0.98]"
-              >
-                <span className="flex items-center gap-2 text-sm font-semibold text-amber-100">
-                  <Star className="h-4 w-4 fill-amber-300 text-amber-300" />
-                  Convert {stars} star{stars === 1 ? '' : 's'} to coins
-                </span>
-                <span className="text-sm font-extrabold tabular-nums text-amber-200">
-                  +{stars}
-                </span>
-              </button>
-            )}
-            {starsClaimed && stars > 0 && (
-              <div className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-2.5 ring-1 ring-white/10">
-                <span className="flex items-center gap-2 text-sm font-medium text-white/60">
-                  <Star className="h-4 w-4 fill-amber-300/60 text-amber-300/60" />
-                  Stars converted
-                </span>
-                <span className="text-sm font-bold tabular-nums text-white/50">+{stars}</span>
-              </div>
-            )}
             {!coinsDoubled && (
               <button
                 onClick={() => {

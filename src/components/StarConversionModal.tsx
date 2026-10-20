@@ -39,7 +39,7 @@ export default function StarConversionModal({ stars, theme, onClose, onConvert }
           </p>
           <h2 className="mt-1 text-2xl font-extrabold text-white">Stars to Coins</h2>
           <p className="mt-1 text-sm text-white/60">
-            Trade your stars for coins at a 1:1 rate.
+            Trade your stars for coins at a 10:1 rate.
           </p>
 
           <div className="mt-5 flex items-center justify-between rounded-xl bg-amber-400/15 px-4 py-3 ring-1 ring-amber-300/30">
@@ -57,7 +57,7 @@ export default function StarConversionModal({ stars, theme, onClose, onConvert }
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setAmount((a) => Math.max(0, a - 10))}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white/80 ring-1 ring-white/15 transition hover:bg-white/20 active:scale-90"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-xs font-bold text-white/80 ring-1 ring-white/15 transition hover:bg-white/20 active:scale-90"
                 aria-label="Minus 10"
               >
                 -10
@@ -76,7 +76,7 @@ export default function StarConversionModal({ stars, theme, onClose, onConvert }
               />
               <button
                 onClick={() => setAmount((a) => Math.min(stars, a + 10))}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white/80 ring-1 ring-white/15 transition hover:bg-white/20 active:scale-90"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-xs font-bold text-white/80 ring-1 ring-white/15 transition hover:bg-white/20 active:scale-90"
                 aria-label="Plus 10"
               >
                 +10
@@ -113,7 +113,7 @@ export default function StarConversionModal({ stars, theme, onClose, onConvert }
               className="text-lg font-extrabold tabular-nums"
               style={{ color: theme.accentSoft }}
             >
-              +{canConvert ? amount : 0}
+              +{canConvert ? Math.floor(amount / 10) : 0}
             </span>
           </div>
 
@@ -132,7 +132,7 @@ export default function StarConversionModal({ stars, theme, onClose, onConvert }
             }}
           >
             <Coins className="h-5 w-5" />
-            Convert {canConvert ? amount : 0} star{canConvert && amount === 1 ? '' : 's'}
+            Convert {canConvert ? amount : 0} star{canConvert && amount === 1 ? '' : 's'} → {canConvert ? Math.floor(amount / 10) : 0} coin{canConvert && Math.floor(amount / 10) === 1 ? '' : 's'}
           </button>
         </div>
       </div>

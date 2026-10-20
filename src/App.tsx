@@ -81,7 +81,6 @@ export default function App() {
   const [levelScoreStart, setLevelScoreStart] = useState(0);
   const [streakBonus, setStreakBonus] = useState(0);
   // Star-to-coin conversion and ad-doubling are one-time offers per level.
-  const [starsClaimed, setStarsClaimed] = useState(false);
   const [coinsDoubled, setCoinsDoubled] = useState(false);
   const [showStarConversion, setShowStarConversion] = useState(false);
 
@@ -136,7 +135,6 @@ export default function App() {
     setLevelScoreStart(score);
     setLevelCoins(0);
     setStreakBonus(0);
-    setStarsClaimed(false);
     setCoinsDoubled(false);
     setShowComplete(false);
     setHint(null);
@@ -329,13 +327,6 @@ export default function App() {
     }
   }
 
-  function claimStars() {
-    if (starsClaimed || stars <= 0) return;
-    setCoins((c) => c + stars);
-    setLevelCoins((c) => c + stars);
-    setStarsClaimed(true);
-  }
-
   function doubleCoins() {
     if (coinsDoubled) return;
     setCoins((c) => c + levelCoins);
@@ -345,8 +336,10 @@ export default function App() {
 
   function convertStars(amount: number) {
     if (amount <= 0 || amount > score) return;
+    const coinsEarned = Math.floor(amount / 10);
+    if (coinsEarned <= 0) return;
     setScore((s) => Math.max(0, s - amount));
-    setCoins((c) => c + amount);
+    setCoins((c) => c + coinsEarned);
   }
 
   function nextLevel() {
@@ -419,9 +412,7 @@ export default function App() {
           isFinal={isFinal}
           stars={stars}
           streakBonus={streakBonus}
-          starsClaimed={starsClaimed}
           coinsDoubled={coinsDoubled}
-          onClaimStars={claimStars}
           onDoubleCoins={doubleCoins}
           nextDifficulty={
             isFinal ? null : LEVELS[Math.min(levelIndex + 1, TOTAL_LEVELS - 1)].difficulty
