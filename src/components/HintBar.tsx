@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, Lightbulb } from 'lucide-react';
+import { Lightbulb } from 'lucide-react';
 import type { Theme } from '@/game/themes';
 
 type Props = {
@@ -124,7 +124,7 @@ export default function HintBar({
       <div className="flex items-center justify-center gap-3">
         <button
           onClick={() => setOpen((o) => !o)}
-          className="relative flex h-11 items-center gap-2 rounded-full px-4 text-sm font-bold ring-1 transition active:scale-95"
+          className="relative flex h-11 w-11 items-center justify-center rounded-full ring-1 transition active:scale-95"
           style={{
             backgroundColor: hasHint
               ? `${theme.accent}33`
@@ -137,23 +137,19 @@ export default function HintBar({
           }}
           aria-label="Open hint panel"
         >
-          <Lightbulb className="h-4 w-4" strokeWidth={2.5} />
-          Hint
+          <Lightbulb className="h-5 w-5" strokeWidth={2.5} />
           {autoHintCountdown !== null && autoHintCountdown > 0 && (
             <span
-              className="flex h-5 min-w-[1.75rem] items-center justify-center rounded-full px-1 text-[0.65rem] font-extrabold tabular-nums"
+              className="absolute -right-1 -top-1 flex h-5 min-w-[1.75rem] items-center justify-center rounded-full px-1 text-[0.65rem] font-extrabold tabular-nums"
               style={{
-                backgroundColor: 'rgba(255,255,255,0.12)',
-                color: theme.accentSoft,
+                backgroundColor: theme.accent,
+                color: theme.accentInk,
               }}
               title="Auto-hint countdown"
             >
               {autoHintCountdown}s
             </span>
           )}
-          <ChevronDown
-            className={`h-4 w-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-          />
         </button>
       </div>
     </div>
