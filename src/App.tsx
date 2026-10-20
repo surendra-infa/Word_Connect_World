@@ -14,28 +14,16 @@ import { shuffle } from '@/game/puzzle';
 import { themeForLevel, type Theme } from '@/game/themes';
 
 const STORAGE_KEY = 'wordlink-progress-v1';
-const HINT_COST = 60;
+// Paid hints escalate in price within a level: 25, 50, 75, 100, ...
+const HINT_BASE_COST = 25;
 const AD_ALERT_MS = 2200;
 // Free auto-hint: first letter after 30s idle, then one letter per minute.
 const AUTO_HINT_FIRST_SECONDS = 30;
 const AUTO_HINT_NEXT_SECONDS = 60;
 const AUTO_HINT_TICK_MS = 1000;
 
-// Level progress is percent-based: each discovered word contributes by length.
-export function wordProgressPercent(len: number): number {
-  if (len <= 3) return 15;
-  if (len === 4) return 20;
-  return 25; // 5 and 6 letter words
-}
-
-// Progress rounds up to 100 once it reaches 95, so the last few stray
-// points never block advancing to the next level.
-const COMPLETE_THRESHOLD = 95;
-
-function wordsProgressPercent(words: string[]): number {
-  const sum = words.reduce((sum, w) => sum + wordProgressPercent(w.length), 0);
-  return sum >= COMPLETE_THRESHOLD ? 100 : sum;
-}
+// Levels complete once the player finds `level.goal` words. The full list of
+// formable words stays valid, but only the goal must be reached.
 
 type Saved = {
   levelIndex: number;
@@ -92,6 +80,9 @@ export default function App() {
   // Letters revealed by hints this level (auto + paid) — drives the star rating:
   // each revealed letter costs one star; 3+ letters loses all stars.
   const [lettersRevealed, setLettersRevealed] = useState(0);
+  // Number of paid hints used this level — drives the escalating hint price.
+  const [paidHints, setPaidHints] = useState(0);
+  const hintCost = HINT_BASE_COST * (paidHints + 1);
 
   // Auto-hint: counts down while idle; reaching 0 reveals a free letter.
   const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
@@ -103,7 +94,7 @@ export default function App() {
 
   const found = foundByLevel[level.id] ?? [];
   const foundCount = found.length;
-  const levelProgress = Math.min(100, wordsProgressPercent(found));
+  const levelProgress = Math.min(100, Math.round((foundCount / level.goal) * 100));
   const isFinal = levelIndex >= TOTAL_LEVELS - 1;
   const stars = Math.max(0, 3 - lettersRevealed);
 
@@ -130,6 +121,7 @@ export default function App() {
     setShowComplete(false);
     setHint(null);
     setLettersRevealed(0);
+    setPaidHints(0);
     setAutoCountdown(AUTO_HINT_FIRST_SECONDS);
     // score is intentionally read at level-entry only
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -280,13 +272,9 @@ export default function App() {
     resetAutoHintTimer();
     window.setTimeout(() => clearWord(), 650);
 
-    // Level completes when weighted progress reaches 100% (95% rounds up),
-    // or when every target word has been found (small levels may cap below
-    // 100% but are complete once exhausted).
-    if (
-      (wordsProgressPercent(newFound) >= 100 || newFound.length >= targetWords.length) &&
-      !showComplete
-    ) {
+    // Level completes when the goal word count is reached (all formable
+    // words remain valid, but only `goal` are required).
+    if (newFound.length >= level.goal && !showComplete) {
       const bonus = level.masteryBonus;
       setCoins((c) => c + bonus);
       setLevelCoins((c) => c + bonus);
@@ -319,7 +307,7 @@ export default function App() {
   function useHint() {
     if (showComplete) return;
 
-    if (coins < HINT_COST) {
+    if (coins < hintCost) {
       setAdAlert(true);
       window.setTimeout(() => setAdAlert(false), AD_ALERT_MS);
       return;
@@ -331,7 +319,8 @@ export default function App() {
       const already = hint && hint.word === newHint.word ? hint.revealed.length : 0;
       setLettersRevealed((n) => n + newHint.word.length - already);
     }
-    setCoins((c) => Math.max(0, c - HINT_COST));
+    setCoins((c) => Math.max(0, c - hintCost));
+    setPaidHints((n) => n + 1);
     resetAutoHintTimer();
   }
 
@@ -368,7 +357,7 @@ export default function App() {
           levelNumber={level.id}
           totalLevels={TOTAL_LEVELS}
           foundCount={foundCount}
-          totalWords={targetWords.length}
+          totalWords={level.goal}
           score={score - levelScoreStart}
           coinsEarned={levelCoins}
           isFinal={isFinal}
@@ -432,7 +421,7 @@ export default function App() {
             </button>
             <HintBar
               coins={coins}
-              hintCost={HINT_COST}
+              hintCost={hintCost}
               hint={hint}
               onUseHint={useHint}
               theme={theme}
@@ -465,7 +454,7 @@ export default function App() {
 
           <FoundGrid
             words={found}
-            total={targetWords.length}
+            total={level.goal}
             theme={theme}
             lastFound={lastFound}
           />

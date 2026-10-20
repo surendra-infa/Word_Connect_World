@@ -68,34 +68,75 @@ export function levelTargetWords(level: Level): string[] {
 }
 
 function goalFor(diff: Difficulty, targetCount: number): number {
-  // Easy: ~60% of available words (any count). Medium: at most 35.
-  // Hard: at most 25 (of only 4+ letter words).
-  if (diff === 'easy') return Math.max(5, Math.round(targetCount * 0.6));
-  if (diff === 'medium') return Math.min(35, Math.max(8, targetCount));
-  return Math.min(25, Math.max(10, targetCount));
+  // Words a player must find to complete the level. Easy: ~60% of available
+  // words (can exceed 35 on word-rich seeds). Medium: 60%, never more than 35.
+  // Hard: 40%, never more than 20 — and always fewer than half the available
+  // words, so more words remain unfound than found at completion.
+  if (diff === 'easy') return Math.min(targetCount, Math.max(5, Math.round(targetCount * 0.6)));
+  if (diff === 'medium') {
+    return Math.min(targetCount, 35, Math.max(8, Math.round(targetCount * 0.6)));
+  }
+  return Math.min(targetCount, 20, Math.max(4, Math.floor(targetCount * 0.4)));
 }
 
 function bonusFor(diff: Difficulty): number {
   return diff === 'easy' ? 15 : diff === 'medium' ? 25 : 40;
 }
 
-const MIN_WORDS: Record<Difficulty, number> = { easy: 11, medium: 18, hard: 15 };
+// Cap on total findable words per difficulty: easy is uncapped, medium never
+// exceeds 35, hard stays lean (6-letter seeds, at most 40 findable words).
+const MAX_WORDS: Record<Difficulty, number> = { easy: Infinity, medium: 35, hard: 40 };
+const MIN_WORDS: Record<Difficulty, number> = { easy: 11, medium: 18, hard: 10 };
+
+// Hard levels draw only from 6-letter seeds so fewer words can be formed,
+// keeping the hidden-vocabulary-heavy feel the user asked for.
+const SIX_LETTER_SEEDS = SEED_POOL.filter((s) => s.length === 6);
+
+const countCache = new Map<string, number>();
+function wordCountFor(letters: string[]): number {
+  const key = [...letters].sort().join('');
+  let n = countCache.get(key);
+  if (n === undefined) {
+    n = getFormableWords(letters).length;
+    countCache.set(key, n);
+  }
+  return n;
+}
 
 function targetsFor(letters: string[]): string[] {
   return getFormableWords(letters);
 }
 
+// Picks a seed whose findable-word count fits the difficulty's band, scanning
+// from a per-level offset for variety. Falls back to the leanest seed in the
+// pool when nothing fits the band exactly.
+function pickSeed(id: number, diff: Difficulty): string {
+  const pool = diff === 'hard' ? SIX_LETTER_SEEDS : SEED_POOL;
+  const min = MIN_WORDS[diff];
+  const max = MAX_WORDS[diff];
+  const start = (id * 7 + 13) % pool.length;
+  for (let i = 0; i < pool.length; i++) {
+    const seed = pool[(start + i) % pool.length];
+    const count = wordCountFor(seed.split(''));
+    if (count >= min && count <= max) return seed;
+  }
+  let best = pool[0];
+  let bestCount = Infinity;
+  for (const seed of pool) {
+    const count = wordCountFor(seed.split(''));
+    if (count < bestCount) {
+      best = seed;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
 function makeLevel(id: number): Level {
   const diff = difficultyFor(id);
-  const seed = SEED_POOL[(id * 7 + 13) % SEED_POOL.length];
-  let letters = seededShuffle(seed.split(''), id * 31 + 7);
-  let targets = targetsFor(letters);
-  // If a seed produces too few valid words for this difficulty, fall back to
-  // a known-rich seed.
-  if (targets.length < MIN_WORDS[diff]) {
-    letters = seededShuffle('GARDEN'.split(''), id * 31 + 7);
-    targets = targetsFor(letters);
-  }
+  const seed = pickSeed(id, diff);
+  const letters = seededShuffle(seed.split(''), id * 31 + 7);
+  const targets = targetsFor(letters);
   return {
     id,
     name: seed.charAt(0) + seed.slice(1).toLowerCase(),
