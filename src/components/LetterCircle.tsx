@@ -110,7 +110,7 @@ export default function LetterCircle({ letters, used, onPick, onUndo, onSwipeEnd
   return (
     <div
       ref={containerRef}
-      className="relative mx-auto aspect-square h-full max-h-full w-auto max-w-full touch-none"
+      className="relative mx-auto aspect-square h-full max-h-full w-auto max-w-full touch-none scale-[1.18]"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
