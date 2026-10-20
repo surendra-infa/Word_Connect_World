@@ -3,12 +3,11 @@ import type { Theme } from '@/game/themes';
 
 type Props = {
   words: string[];
-  total: number;
   theme: Theme;
   lastFound: string | null;
 };
 
-export default function FoundGrid({ words, total, theme, lastFound }: Props) {
+export default function FoundGrid({ words, theme, lastFound }: Props) {
   const [landing, setLanding] = useState<string | null>(null);
 
   useEffect(() => {
@@ -25,7 +24,7 @@ export default function FoundGrid({ words, total, theme, lastFound }: Props) {
           Found words
         </h2>
         <span className="text-xs font-semibold text-white/40">
-          {words.length} / {total}
+          {words.length} word{words.length === 1 ? '' : 's'}
         </span>
       </div>
 

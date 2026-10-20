@@ -6,7 +6,6 @@ type Props = {
   levelNumber: number;
   totalLevels: number;
   foundCount: number;
-  totalWords: number;
   score: number;
   coinsEarned: number;
   isFinal: boolean;
@@ -24,7 +23,6 @@ export default function LevelCompleteModal({
   levelNumber,
   totalLevels,
   foundCount,
-  totalWords,
   score,
   coinsEarned,
   isFinal,
@@ -47,7 +45,7 @@ export default function LevelCompleteModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [onNext]);
 
-  const pct = Math.round((foundCount / totalWords) * 100);
+  const pct = 100;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -126,7 +124,7 @@ export default function LevelCompleteModal({
           </p>
 
           <div className="mt-5 space-y-2.5">
-            <Stat label="Words found" value={`${foundCount} / ${totalWords}`} />
+            <Stat label="Words found" value={String(foundCount)} />
             <Stat label="Completion" value={`${pct}%`} />
             <Stat label="Level score" value={String(score)} />
             <div className="flex items-center justify-between rounded-xl bg-amber-400/15 px-4 py-3 ring-1 ring-amber-300/30">

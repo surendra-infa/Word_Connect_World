@@ -9,7 +9,7 @@ import LevelCompleteModal from '@/components/LevelCompleteModal';
 import HintBar from '@/components/HintBar';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import ProgressBar from '@/components/ProgressBar';
-import { LEVELS, TOTAL_LEVELS, levelTargetWords, type Level } from '@/game/levels';
+import { LEVELS, TOTAL_LEVELS, levelTargetWords, wordPoints, type Level } from '@/game/levels';
 import { shuffle } from '@/game/puzzle';
 import { themeForLevel, type Theme } from '@/game/themes';
 
@@ -22,8 +22,9 @@ const AUTO_HINT_FIRST_SECONDS = 30;
 const AUTO_HINT_NEXT_SECONDS = 60;
 const AUTO_HINT_TICK_MS = 1000;
 
-// Levels complete once the player finds `level.goal` words. The full list of
-// formable words stays valid, but only the goal must be reached.
+// Levels complete at 100 points, where each found word adds points by its
+// length (3-letter = 20, 4-letter = 25, 5+ = 30). All formable words stay
+// valid after completion.
 
 type Saved = {
   levelIndex: number;
@@ -97,7 +98,9 @@ export default function App() {
 
   const found = foundByLevel[level.id] ?? [];
   const foundCount = found.length;
-  const levelProgress = Math.min(100, Math.round((foundCount / level.goal) * 100));
+  // Levels fill to 100% by word length: 3-letter = 20, 4-letter = 25, 5+ = 30.
+  const levelPoints = found.reduce((sum, w) => sum + wordPoints(w), 0);
+  const levelProgress = Math.min(100, levelPoints);
   const isFinal = levelIndex >= TOTAL_LEVELS - 1;
   const stars = Math.max(0, 3 - lettersRevealed);
 
@@ -277,9 +280,9 @@ export default function App() {
     resetAutoHintTimer();
     window.setTimeout(() => clearWord(), 650);
 
-    // Level completes when the goal word count is reached (all formable
-    // words remain valid, but only `goal` are required).
-    if (newFound.length >= level.goal && !showComplete) {
+    // Level completes at 100 points (3-letter = 20, 4-letter = 25, 5+ = 30);
+    // all formable words remain valid after completion.
+    if (levelPoints >= 100 && !showComplete) {
       const bonus = level.masteryBonus;
       setCoins((c) => c + bonus);
       setLevelCoins((c) => c + bonus);
@@ -376,7 +379,6 @@ export default function App() {
           levelNumber={level.id}
           totalLevels={TOTAL_LEVELS}
           foundCount={foundCount}
-          totalWords={level.goal}
           score={score - levelScoreStart}
           coinsEarned={levelCoins}
           isFinal={isFinal}
@@ -477,7 +479,6 @@ export default function App() {
 
           <FoundGrid
             words={found}
-            total={level.goal}
             theme={theme}
             lastFound={lastFound}
           />
