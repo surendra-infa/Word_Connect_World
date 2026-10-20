@@ -8,15 +8,20 @@ type Props = {
   level: number;
   difficulty: Difficulty;
   theme: Theme;
+  onOpenStarConversion: () => void;
 };
 
-export default function TopBar({ score, coins, level, difficulty, theme }: Props) {
+export default function TopBar({ score, coins, level, difficulty, theme, onOpenStarConversion }: Props) {
   return (
     <header className="flex shrink-0 items-center justify-between gap-2 px-4 pt-3 pb-2">
-      <div className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 backdrop-blur-md ring-1 ring-white/15">
+      <button
+        onClick={onOpenStarConversion}
+        className="flex cursor-pointer items-center gap-2 rounded-full bg-white/10 px-3 py-2 backdrop-blur-md ring-1 ring-white/15 transition hover:bg-white/15 active:scale-95"
+        aria-label="Convert stars to coins"
+      >
         <Star className="h-4 w-4 fill-amber-300 text-amber-300" />
         <span className="text-sm font-semibold tabular-nums text-white">{score}</span>
-      </div>
+      </button>
 
       <div className="flex flex-col items-center leading-none">
         <span className="text-[0.6rem] font-semibold uppercase tracking-widest text-white/45">

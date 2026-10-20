@@ -6,6 +6,7 @@ import LetterCircle from '@/components/LetterCircle';
 import FoundGrid from '@/components/FoundGrid';
 import FlyingWord from '@/components/FlyingWord';
 import LevelCompleteModal from '@/components/LevelCompleteModal';
+import StarConversionModal from '@/components/StarConversionModal';
 import HintBar from '@/components/HintBar';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import ProgressBar from '@/components/ProgressBar';
@@ -82,6 +83,7 @@ export default function App() {
   // Star-to-coin conversion and ad-doubling are one-time offers per level.
   const [starsClaimed, setStarsClaimed] = useState(false);
   const [coinsDoubled, setCoinsDoubled] = useState(false);
+  const [showStarConversion, setShowStarConversion] = useState(false);
 
   // Hint state: a word being hinted at + which letter positions are revealed.
   const [hint, setHint] = useState<{ word: string; revealed: number[] } | null>(null);
@@ -341,6 +343,12 @@ export default function App() {
     setCoinsDoubled(true);
   }
 
+  function convertStars(amount: number) {
+    if (amount <= 0 || amount > score) return;
+    setScore((s) => Math.max(0, s - amount));
+    setCoins((c) => c + amount);
+  }
+
   function nextLevel() {
     if (isFinal) {
       // restart from level 1, keep coins
@@ -422,6 +430,15 @@ export default function App() {
         />
       )}
 
+      {showStarConversion && (
+        <StarConversionModal
+          stars={score}
+          theme={theme}
+          onClose={() => setShowStarConversion(false)}
+          onConvert={convertStars}
+        />
+      )}
+
       {adAlert && <AdAlert theme={theme} />}
 
       <div className="relative z-10 mx-auto flex h-[100dvh] w-full max-w-md flex-col">
@@ -431,6 +448,7 @@ export default function App() {
           level={level.id}
           difficulty={level.difficulty}
           theme={theme}
+          onOpenStarConversion={() => setShowStarConversion(true)}
         />
 
         <main className="flex min-h-0 flex-1 flex-col px-4 pb-2">
