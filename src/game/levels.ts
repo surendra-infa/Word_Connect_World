@@ -54,11 +54,20 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
   return out;
 }
 
-// Levels 1–10 are easy so new players learn the mechanics. After that the
-// game alternates in 5-level blocks: 5 medium, 5 hard, 5 medium, ...
+// Levels 1–10 are easy so new players learn the mechanics. After that a
+// 20-level repeating cycle keeps the pacing varied and prevents more than 3
+// hard levels in a row, so players get easier breaks between tough stretches:
+//   2 medium, 1 easy, 2 medium, 3 hard, 1 easy, 2 medium, 3 hard, 1 easy,
+//   2 medium, 3 hard   -> repeats every 20 levels.
+const CYCLE: Difficulty[] = [
+  'medium', 'medium', 'easy',
+  'medium', 'medium', 'hard', 'hard', 'hard',
+  'easy', 'medium', 'medium', 'hard', 'hard', 'hard',
+  'easy', 'medium', 'medium', 'hard', 'hard', 'hard',
+];
 export function difficultyFor(levelNum: number): Difficulty {
   if (levelNum <= 10) return 'easy';
-  return Math.floor((levelNum - 11) / 5) % 2 === 0 ? 'medium' : 'hard';
+  return CYCLE[(levelNum - 11) % CYCLE.length];
 }
 
 // Hard mode uses the same word rules as other levels — every real word that
