@@ -61,11 +61,10 @@ export function difficultyFor(levelNum: number): Difficulty {
   return Math.floor((levelNum - 11) / 5) % 2 === 0 ? 'medium' : 'hard';
 }
 
-// Hard mode only accepts words of 4+ letters — short words no longer count,
-// which is what makes hard levels genuinely harder despite the smaller goal.
+// Hard mode uses the same word rules as other levels — every real word that
+// can be formed from the letters counts.
 export function levelTargetWords(level: Level): string[] {
-  const all = getFormableWords(level.letters);
-  return level.difficulty === 'hard' ? all.filter((w) => w.length >= 4) : all;
+  return getFormableWords(level.letters);
 }
 
 function goalFor(diff: Difficulty, targetCount: number): number {
@@ -82,21 +81,20 @@ function bonusFor(diff: Difficulty): number {
 
 const MIN_WORDS: Record<Difficulty, number> = { easy: 11, medium: 18, hard: 15 };
 
-function targetsFor(letters: string[], diff: Difficulty): string[] {
-  const all = getFormableWords(letters);
-  return diff === 'hard' ? all.filter((w) => w.length >= 4) : all;
+function targetsFor(letters: string[]): string[] {
+  return getFormableWords(letters);
 }
 
 function makeLevel(id: number): Level {
   const diff = difficultyFor(id);
   const seed = SEED_POOL[(id * 7 + 13) % SEED_POOL.length];
   let letters = seededShuffle(seed.split(''), id * 31 + 7);
-  let targets = targetsFor(letters, diff);
+  let targets = targetsFor(letters);
   // If a seed produces too few valid words for this difficulty, fall back to
   // a known-rich seed.
   if (targets.length < MIN_WORDS[diff]) {
     letters = seededShuffle('GARDEN'.split(''), id * 31 + 7);
-    targets = targetsFor(letters, diff);
+    targets = targetsFor(letters);
   }
   return {
     id,
