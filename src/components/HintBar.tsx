@@ -33,7 +33,7 @@ export default function HintBar({
             onClick={() => setOpen(false)}
           />
           <div
-            className="animate-pop absolute bottom-full left-1/2 z-50 mb-2 w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl bg-white/10 p-4 shadow-2xl ring-1 ring-white/15 backdrop-blur-md"
+            className="animate-pop fixed bottom-28 left-1/2 z-50 w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl bg-white/10 p-4 shadow-2xl ring-1 ring-white/15 backdrop-blur-md"
             style={{ boxShadow: `0 -8px 30px rgba(0,0,0,0.4)` }}
           >
             <div className="mb-3 flex items-center justify-between">

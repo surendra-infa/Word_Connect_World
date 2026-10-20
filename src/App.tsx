@@ -84,12 +84,14 @@ export default function App() {
   const [showComplete, setShowComplete] = useState(false);
   const [levelCoins, setLevelCoins] = useState(0);
   const [levelScoreStart, setLevelScoreStart] = useState(0);
+  const [streakBonus, setStreakBonus] = useState(0);
 
   // Hint state: a word being hinted at + which letter positions are revealed.
   const [hint, setHint] = useState<{ word: string; revealed: number[] } | null>(null);
   const [adAlert, setAdAlert] = useState(false);
-  // Hints used this level (manual + auto) — drives the star rating.
-  const [hintsUsed, setHintsUsed] = useState(0);
+  // Letters revealed by hints this level (auto + paid) — drives the star rating:
+  // each revealed letter costs one star; 3+ letters loses all stars.
+  const [lettersRevealed, setLettersRevealed] = useState(0);
 
   // Auto-hint: counts down while idle; reaching 0 reveals a free letter.
   const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
@@ -103,7 +105,7 @@ export default function App() {
   const foundCount = found.length;
   const levelProgress = Math.min(100, wordsProgressPercent(found));
   const isFinal = levelIndex >= TOTAL_LEVELS - 1;
-  const stars = hintsUsed === 0 ? 3 : hintsUsed === 1 ? 2 : 1;
+  const stars = Math.max(0, 3 - lettersRevealed);
 
   // Persist progress
   useEffect(() => {
@@ -124,9 +126,10 @@ export default function App() {
     setMessage('');
     setLevelScoreStart(score);
     setLevelCoins(0);
+    setStreakBonus(0);
     setShowComplete(false);
     setHint(null);
-    setHintsUsed(0);
+    setLettersRevealed(0);
     setAutoCountdown(AUTO_HINT_FIRST_SECONDS);
     // score is intentionally read at level-entry only
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -287,6 +290,14 @@ export default function App() {
       const bonus = level.masteryBonus;
       setCoins((c) => c + bonus);
       setLevelCoins((c) => c + bonus);
+      // Hard-mode streak: finish a hard level with zero revealed letters
+      // for an extra coin reward.
+      const streak = level.difficulty === 'hard' && lettersRevealed === 0 ? 50 : 0;
+      if (streak > 0) {
+        setCoins((c) => c + streak);
+        setLevelCoins((c) => c + streak);
+      }
+      setStreakBonus(streak);
       window.setTimeout(() => {
         setShowComplete(true);
         setAutoCountdown(null);
@@ -314,9 +325,13 @@ export default function App() {
       return;
     }
 
-    setHint((prev) => revealHintWord(found, prev));
+    const newHint = revealHintWord(found, hint);
+    setHint(newHint);
+    if (newHint) {
+      const already = hint && hint.word === newHint.word ? hint.revealed.length : 0;
+      setLettersRevealed((n) => n + newHint.word.length - already);
+    }
     setCoins((c) => Math.max(0, c - HINT_COST));
-    setHintsUsed((n) => n + 1);
     resetAutoHintTimer();
   }
 
@@ -329,8 +344,10 @@ export default function App() {
       setAutoCountdown((c) => {
         if (c === null) return null;
         if (c <= 1) {
-          // Fire a free auto-hint this tick: reveals one letter (no coins).
+          // Fire a free auto-hint this tick: reveals one letter (no coins),
+          // but each revealed letter costs one star.
           setHint((prev) => revealHintLetter(found, prev));
+          setLettersRevealed((n) => n + 1);
           return AUTO_HINT_NEXT_SECONDS;
         }
         return c - 1;
@@ -356,6 +373,7 @@ export default function App() {
           coinsEarned={levelCoins}
           isFinal={isFinal}
           stars={stars}
+          streakBonus={streakBonus}
           nextDifficulty={
             isFinal ? null : LEVELS[Math.min(levelIndex + 1, TOTAL_LEVELS - 1)].difficulty
           }

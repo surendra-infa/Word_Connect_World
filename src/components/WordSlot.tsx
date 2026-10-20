@@ -17,7 +17,7 @@ export default function WordSlot({ word, status, message, theme }: Props) {
         : '');
 
   return (
-    <div className="flex flex-col items-center gap-2 px-6 pt-2">
+    <div className="flex w-full flex-col items-center gap-2 px-4 pt-2">
       <div
         className={[
           'flex min-h-[4rem] items-center justify-center gap-1.5 rounded-2xl px-4 py-3 transition-all duration-200',

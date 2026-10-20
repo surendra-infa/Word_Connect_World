@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Coins, Sparkles, Star, Trophy } from 'lucide-react';
+import { Coins, Flame, Sparkles, Star, Trophy } from 'lucide-react';
 import { DIFFICULTY_COLOR, DIFFICULTY_LABEL, type Difficulty } from '@/game/levels';
 
 type Props = {
@@ -11,6 +11,7 @@ type Props = {
   coinsEarned: number;
   isFinal: boolean;
   stars: number;
+  streakBonus: number;
   nextDifficulty: Difficulty | null;
   onNext: () => void;
 };
@@ -24,6 +25,7 @@ export default function LevelCompleteModal({
   coinsEarned,
   isFinal,
   stars,
+  streakBonus,
   nextDifficulty,
   onNext,
 }: Props) {
@@ -126,6 +128,23 @@ export default function LevelCompleteModal({
                 +{coinsEarned}
               </span>
             </div>
+            {streakBonus > 0 && (
+              <div
+                className="flex items-center justify-between rounded-xl px-4 py-3 ring-1"
+                style={{
+                  backgroundColor: 'rgba(248,113,113,0.15)',
+                  ['--tw-ring-color' as string]: 'rgba(248,113,113,0.4)',
+                }}
+              >
+                <span className="flex items-center gap-2 text-sm font-semibold text-red-200">
+                  <Flame className="h-4 w-4 text-red-300" />
+                  Hard mode streak
+                </span>
+                <span className="text-lg font-extrabold tabular-nums text-red-200">
+                  +{streakBonus}
+                </span>
+              </div>
+            )}
           </div>
 
           <button
