@@ -16,7 +16,9 @@ import { themeForLevel, type Theme } from '@/game/themes';
 const STORAGE_KEY = 'wordlink-progress-v1';
 const HINT_COST = 20;
 const AD_ALERT_MS = 2200;
-const AUTO_HINT_SECONDS = 30;
+// Free auto-hint: first letter after 30s idle, then one letter per minute.
+const AUTO_HINT_FIRST_SECONDS = 30;
+const AUTO_HINT_NEXT_SECONDS = 60;
 const AUTO_HINT_TICK_MS = 1000;
 
 // Level progress is percent-based: each discovered word contributes by length.
@@ -125,7 +127,7 @@ export default function App() {
     setShowComplete(false);
     setHint(null);
     setHintsUsed(0);
-    setAutoCountdown(AUTO_HINT_SECONDS);
+    setAutoCountdown(AUTO_HINT_FIRST_SECONDS);
     // score is intentionally read at level-entry only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level.id]);
@@ -152,7 +154,25 @@ export default function App() {
     window.setTimeout(() => setMessage(''), 1200);
   }
 
-  // Reveals an entire unfound word — shared by manual + auto hint.
+  // Reveals the next single letter of an unfound word — used by the free
+  // auto-hint. Keeps revealing the same word letter by letter; starts a new
+  // word (with its first letter) once the current one is fully shown.
+  const revealHintLetter = useCallback(
+    (foundSnapshot: string[], prev: { word: string; revealed: number[] } | null) => {
+      const foundSet = new Set(foundSnapshot);
+      const remaining = targetWords.filter((w) => !foundSet.has(w));
+      if (remaining.length === 0) return null;
+
+      if (prev && !foundSet.has(prev.word) && prev.revealed.length < prev.word.length) {
+        return { word: prev.word, revealed: [...prev.revealed, prev.revealed.length] };
+      }
+      const word = remaining[Math.floor(Math.random() * remaining.length)];
+      return { word, revealed: [0] };
+    },
+    [targetWords],
+  );
+
+  // Reveals an entire unfound word — used by the paid hint.
   const revealHintWord = useCallback(
     (foundSnapshot: string[], prev: { word: string; revealed: number[] } | null) => {
       const foundSet = new Set(foundSnapshot);
@@ -170,7 +190,7 @@ export default function App() {
   );
 
   function resetAutoHintTimer() {
-    setAutoCountdown(AUTO_HINT_SECONDS);
+    setAutoCountdown(hint ? AUTO_HINT_NEXT_SECONDS : AUTO_HINT_FIRST_SECONDS);
   }
 
   function pickLetter(index: number) {
@@ -309,16 +329,16 @@ export default function App() {
       setAutoCountdown((c) => {
         if (c === null) return null;
         if (c <= 1) {
-          // Fire a free auto-hint this tick (no coins, no star penalty).
-          setHint((prev) => revealHintWord(found, prev));
-          return AUTO_HINT_SECONDS;
+          // Fire a free auto-hint this tick: reveals one letter (no coins).
+          setHint((prev) => revealHintLetter(found, prev));
+          return AUTO_HINT_NEXT_SECONDS;
         }
         return c - 1;
       });
     }, AUTO_HINT_TICK_MS);
 
     return () => window.clearInterval(id);
-  }, [showComplete, status, autoCountdown === null, found, revealHintWord]);
+  }, [showComplete, status, autoCountdown === null, found, revealHintLetter]);
 
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden font-sans text-white">
