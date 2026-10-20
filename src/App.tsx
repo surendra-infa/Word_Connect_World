@@ -9,7 +9,7 @@ import LevelCompleteModal from '@/components/LevelCompleteModal';
 import HintBar from '@/components/HintBar';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import ProgressBar from '@/components/ProgressBar';
-import { LEVELS, TOTAL_LEVELS, levelTargetWords, wordPoints, type Level } from '@/game/levels';
+import { LEVELS, TOTAL_LEVELS, levelTargetWords, wordPoints, hintWordPoints, type Level } from '@/game/levels';
 import { shuffle } from '@/game/puzzle';
 import { themeForLevel, type Theme } from '@/game/themes';
 
@@ -31,6 +31,7 @@ type Saved = {
   score: number;
   coins: number;
   foundByLevel: Record<number, string[]>;
+  hintedByLevel: Record<number, string[]>;
 };
 
 function loadProgress(): Saved {
@@ -44,13 +45,13 @@ function loadProgress(): Saved {
         typeof parsed.coins === 'number' &&
         parsed.foundByLevel
       ) {
-        return parsed;
+        return { ...parsed, hintedByLevel: parsed.hintedByLevel ?? {} };
       }
     }
   } catch {
     // ignore corrupt storage
   }
-  return { levelIndex: 0, score: 0, coins: 50, foundByLevel: {} };
+  return { levelIndex: 0, score: 0, coins: 50, foundByLevel: {}, hintedByLevel: {} };
 }
 
 export default function App() {
@@ -61,6 +62,10 @@ export default function App() {
   const [coins, setCoins] = useState(saved.current.coins);
   const [foundByLevel, setFoundByLevel] = useState<Record<number, string[]>>(
     saved.current.foundByLevel,
+  );
+  // Words found that were revealed by a hint — they earn half points.
+  const [hintedByLevel, setHintedByLevel] = useState<Record<number, string[]>>(
+    saved.current.hintedByLevel,
   );
 
   const [letters, setLetters] = useState<string[]>([]);
@@ -97,22 +102,27 @@ export default function App() {
   const theme: Theme = useMemo(() => themeForLevel(level.id), [level.id]);
 
   const found = foundByLevel[level.id] ?? [];
+  const hintedWords = hintedByLevel[level.id] ?? [];
   const foundCount = found.length;
-  // Levels fill to 100% by word length: 3-letter = 20, 4-letter = 25, 5+ = 30.
-  const levelPoints = found.reduce((sum, w) => sum + wordPoints(w), 0);
+  // Levels fill to 100% by word length: 3-letter = 20, 4-letter = 25, 5+ = 30;
+  // hint-revealed words count half.
+  const levelPoints = found.reduce(
+    (sum, w) => sum + (hintedWords.includes(w) ? hintWordPoints(w) : wordPoints(w)),
+    0,
+  );
   const levelProgress = Math.min(100, levelPoints);
   const isFinal = levelIndex >= TOTAL_LEVELS - 1;
   const stars = Math.max(0, 3 - lettersRevealed);
 
   // Persist progress
   useEffect(() => {
-    const data: Saved = { levelIndex, score, coins, foundByLevel };
+    const data: Saved = { levelIndex, score, coins, foundByLevel, hintedByLevel };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       // ignore quota errors
     }
-  }, [levelIndex, score, coins, foundByLevel]);
+  }, [levelIndex, score, coins, foundByLevel, hintedByLevel]);
 
   // Initialize / re-initialize letters when level changes
   useEffect(() => {
@@ -263,9 +273,18 @@ export default function App() {
     }
 
     const newFound = [...found, word];
+    // A word currently being revealed by a hint earns half points, toward
+    // both score and the 100-point completion goal.
+    const isHinted = hint?.word === word;
+    if (isHinted) {
+      setHintedByLevel((m) => {
+        const list = m[level.id] ?? [];
+        return list.includes(word) ? m : { ...m, [level.id]: [...list, word] };
+      });
+    }
+    const wordPts = isHinted ? hintWordPoints(word) : wordPoints(word);
     const earned =
-      (word.length <= 3 ? 20 : word.length === 4 ? 25 : 30) +
-      (word.length === level.letters.length ? 50 : 0);
+      wordPts + (!isHinted && word.length === level.letters.length ? 50 : 0);
     const coinEarned = word.length;
     setScore((s) => s + earned);
     setCoins((c) => c + coinEarned);
@@ -280,9 +299,16 @@ export default function App() {
     resetAutoHintTimer();
     window.setTimeout(() => clearWord(), 650);
 
-    // Level completes at 100 points (3-letter = 20, 4-letter = 25, 5+ = 30);
-    // all formable words remain valid after completion.
-    if (levelPoints >= 100 && !showComplete) {
+    // Level completes as soon as the points from every word found so far
+    // (including the one just submitted) reach 100. Computed from newFound so
+    // the just-submitted word counts — checking the previous render's total
+    // made levels finish one word late.
+    const hintedSet = new Set([...hintedWords, ...(isHinted ? [word] : [])]);
+    const newPoints = newFound.reduce(
+      (sum, w) => sum + (hintedSet.has(w) ? hintWordPoints(w) : wordPoints(w)),
+      0,
+    );
+    if (newPoints >= 100 && !showComplete) {
       const bonus = level.masteryBonus;
       setCoins((c) => c + bonus);
       setLevelCoins((c) => c + bonus);
@@ -320,6 +346,7 @@ export default function App() {
       // restart from level 1, keep coins
       setLevelIndex(0);
       setFoundByLevel({});
+      setHintedByLevel({});
       setScore(0);
     } else {
       setLevelIndex((i) => Math.min(i + 1, TOTAL_LEVELS - 1));
@@ -479,6 +506,7 @@ export default function App() {
 
           <FoundGrid
             words={found}
+            hinted={hintedWords}
             theme={theme}
             lastFound={lastFound}
           />

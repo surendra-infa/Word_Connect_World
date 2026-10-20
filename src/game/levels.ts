@@ -18,6 +18,11 @@ export function wordPoints(word: string): number {
   return len <= 3 ? 20 : len === 4 ? 25 : 30;
 }
 
+// Words revealed by a hint earn half points.
+export function hintWordPoints(word: string): number {
+  return Math.floor(wordPoints(word) / 2);
+}
+
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
   easy: 'Easy',
   medium: 'Medium',
