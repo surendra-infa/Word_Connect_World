@@ -402,6 +402,14 @@ export default function App() {
             >
               <RotateCcw className="h-5 w-5" />
             </button>
+            <HintBar
+              coins={coins}
+              hintCost={HINT_COST}
+              hint={hint}
+              onUseHint={useHint}
+              theme={theme}
+              autoHintCountdown={autoCountdown}
+            />
             <button
               onClick={submit}
               disabled={picked.length === 0 || status === 'valid'}
@@ -434,15 +442,6 @@ export default function App() {
             lastFound={lastFound}
           />
         </main>
-
-        <HintBar
-          coins={coins}
-          hintCost={HINT_COST}
-          hint={hint}
-          onUseHint={useHint}
-          theme={theme}
-          autoHintCountdown={autoCountdown}
-        />
       </div>
     </div>
   );

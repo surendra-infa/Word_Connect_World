@@ -24,8 +24,8 @@ export default function HintBar({
   const hasHint = hint !== null;
 
   return (
-    <div className="relative mt-auto shrink-0 px-4 pb-3 pt-1">
-      {/* Popup panel (opens upward, above the button) */}
+    <div className="relative flex items-center">
+      {/* Popup panel (opens upward, anchored to the button) */}
       {open && (
         <>
           <div
@@ -33,7 +33,7 @@ export default function HintBar({
             onClick={() => setOpen(false)}
           />
           <div
-            className="animate-pop absolute bottom-full left-4 right-4 z-50 mb-2 rounded-2xl bg-white/10 p-4 shadow-2xl ring-1 ring-white/15 backdrop-blur-md"
+            className="animate-pop absolute bottom-full left-1/2 z-50 mb-2 w-[min(20rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl bg-white/10 p-4 shadow-2xl ring-1 ring-white/15 backdrop-blur-md"
             style={{ boxShadow: `0 -8px 30px rgba(0,0,0,0.4)` }}
           >
             <div className="mb-3 flex items-center justify-between">
@@ -120,38 +120,36 @@ export default function HintBar({
         </>
       )}
 
-      {/* Compact button row */}
-      <div className="flex items-center justify-center gap-3">
-        <button
-          onClick={() => setOpen((o) => !o)}
-          className="relative flex h-11 w-11 items-center justify-center rounded-full ring-1 transition active:scale-95"
-          style={{
-            backgroundColor: hasHint
-              ? `${theme.accent}33`
-              : 'rgba(255,255,255,0.08)',
-            color: hasHint ? theme.accentSoft : 'rgba(255,255,255,0.7)',
-            ['--tw-ring-color' as string]: hasHint
-              ? `${theme.accent}88`
-              : 'rgba(255,255,255,0.15)',
-            boxShadow: hasHint ? `0 0 14px ${theme.accent}44` : undefined,
-          }}
-          aria-label="Open hint panel"
-        >
-          <Lightbulb className="h-5 w-5" strokeWidth={2.5} />
-          {autoHintCountdown !== null && autoHintCountdown > 0 && (
-            <span
-              className="absolute -right-1 -top-1 flex h-5 min-w-[1.75rem] items-center justify-center rounded-full px-1 text-[0.65rem] font-extrabold tabular-nums"
-              style={{
-                backgroundColor: theme.accent,
-                color: theme.accentInk,
-              }}
-              title="Auto-hint countdown"
-            >
-              {autoHintCountdown}s
-            </span>
-          )}
-        </button>
-      </div>
+      {/* Compact icon button (sits inline in the action row) */}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="relative flex h-12 w-12 items-center justify-center rounded-full ring-1 transition active:scale-90"
+        style={{
+          backgroundColor: hasHint
+            ? `${theme.accent}33`
+            : 'rgba(255,255,255,0.10)',
+          color: hasHint ? theme.accentSoft : 'rgba(255,255,255,0.8)',
+          ['--tw-ring-color' as string]: hasHint
+            ? `${theme.accent}88`
+            : 'rgba(255,255,255,0.15)',
+          boxShadow: hasHint ? `0 0 14px ${theme.accent}44` : undefined,
+        }}
+        aria-label="Open hint panel"
+      >
+        <Lightbulb className="h-5 w-5" strokeWidth={2.5} />
+        {autoHintCountdown !== null && autoHintCountdown > 0 && (
+          <span
+            className="absolute -right-1 -top-1 flex h-5 min-w-[1.75rem] items-center justify-center rounded-full px-1 text-[0.65rem] font-extrabold tabular-nums"
+            style={{
+              backgroundColor: theme.accent,
+              color: theme.accentInk,
+            }}
+            title="Next free letter countdown"
+          >
+            {autoHintCountdown}s
+          </span>
+        )}
+      </button>
     </div>
   );
 }
