@@ -1,0 +1,117 @@
+import { Star } from 'lucide-react';
+import type { Theme } from '@/game/themes';
+
+type Props = {
+  progress: number; // 0–100 weighted percent
+  foundCount: number;
+  theme: Theme;
+  stars: number; // 1–3, based on hints used this level
+};
+
+export default function ProgressBar({ progress, foundCount, theme, stars }: Props) {
+  const pct = Math.min(100, Math.round(progress));
+
+  return (
+    <div className="shrink-0 px-2 pt-1">
+      {/* Header: percentage badge, star rating, words counter */}
+      <div className="mb-1.5 flex items-center justify-between">
+        <span
+          className="flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[0.7rem] font-extrabold tabular-nums"
+          style={{
+            backgroundColor: `${theme.accent}22`,
+            color: theme.accentSoft,
+            boxShadow: `inset 0 0 0 1px ${theme.accent}55, 0 0 10px ${theme.accent}44`,
+          }}
+        >
+          <span
+            className="inline-block h-1.5 w-1.5 rounded-full animate-pulse-soft"
+            style={{
+              backgroundColor: theme.accentSoft,
+              boxShadow: `0 0 6px ${theme.accentSoft}`,
+            }}
+          />
+          {pct}%
+        </span>
+
+        {/* Live star rating */}
+        <span className="flex items-center gap-0.5" title={`${stars} star${stars === 1 ? '' : 's'} pace`}>
+          {[1, 2, 3].map((s) => {
+            const earned = s <= stars;
+            return (
+              <Star
+                key={s}
+                className={[
+                  'h-4 w-4 transition-all duration-300',
+                  earned ? 'scale-110' : 'scale-90',
+                ].join(' ')}
+                style={{
+                  color: earned ? theme.accentSoft : 'rgba(255,255,255,0.22)',
+                  fill: earned ? theme.accent : 'transparent',
+                  filter: earned ? `drop-shadow(0 0 4px ${theme.accent})` : undefined,
+                }}
+              />
+            );
+          })}
+        </span>
+
+        <span className="text-[0.7rem] font-semibold text-white/45">
+          {foundCount} word{foundCount === 1 ? '' : 's'} found
+        </span>
+      </div>
+
+      {/* XP-style track */}
+      <div
+        className="relative h-4 rounded-full"
+        style={{
+          backgroundColor: 'rgba(0,0,0,0.35)',
+          boxShadow:
+            'inset 0 2px 5px rgba(0,0,0,0.5), inset 0 -1px 1px rgba(255,255,255,0.06)',
+        }}
+      >
+        {/* Inner rail ring */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-full ring-1 ring-white/10" />
+
+        {/* Gradient fill with shimmer + gloss */}
+        <div
+          className="absolute inset-y-[3px] left-[3px] overflow-hidden rounded-full transition-[width] duration-700 ease-out"
+          style={{
+            width: `calc(${pct}% - 6px)`,
+            minWidth: pct > 0 ? 10 : 0,
+            backgroundImage: `linear-gradient(90deg, ${theme.accentSoft}, ${theme.accent}, ${theme.accentStrong})`,
+            boxShadow: `0 0 14px ${theme.accent}cc, 0 0 5px ${theme.accentSoft}`,
+          }}
+        >
+          {/* Moving shimmer sweep */}
+          <div
+            className="absolute inset-0 animate-shimmer"
+            style={{
+              backgroundImage:
+                'linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.55) 50%, transparent 80%)',
+              backgroundSize: '200% 100%',
+            }}
+          />
+          {/* Glossy top highlight */}
+          <div
+            className="absolute inset-x-0 top-0 h-1/2 rounded-full"
+            style={{
+              background:
+                'linear-gradient(to bottom, rgba(255,255,255,0.5), transparent)',
+            }}
+          />
+        </div>
+
+        {/* Glowing orb at the fill head */}
+        {pct > 0 && pct < 100 && (
+          <div
+            className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 animate-pulse-soft rounded-full transition-[left] duration-700 ease-out"
+            style={{
+              left: `${pct}%`,
+              backgroundColor: '#fff',
+              boxShadow: `0 0 10px 2px ${theme.accentSoft}, 0 0 20px 4px ${theme.accent}88`,
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
