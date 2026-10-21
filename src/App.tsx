@@ -122,7 +122,6 @@ export default function App() {
   const [showTutorial, setShowTutorial] = useState(() => !tutorialDone());
   const [showRestore, setShowRestore] = useState(false);
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
-  const [cloudStatus, setCloudStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   const level: Level = LEVELS[Math.min(levelIndex, TOTAL_LEVELS - 1)];
   const targetWords = useMemo(() => levelTargetWords(level), [level]);
@@ -156,7 +155,6 @@ export default function App() {
   // Mirror progress to the cloud (device-keyed backup, debounced 3s)
   useEffect(() => {
     const t = window.setTimeout(() => {
-      setCloudStatus('saving');
       const payload: CloudSave = {
         playerSeed: PLAYER_SEED,
         levelIndex,
@@ -165,7 +163,7 @@ export default function App() {
         foundByLevel,
         hintedByLevel,
       };
-      void uploadSave(payload).then((ok) => setCloudStatus(ok ? 'saved' : 'idle'));
+      void uploadSave(payload);
     }, 3000);
     return () => window.clearTimeout(t);
   }, [levelIndex, score, coins, foundByLevel, hintedByLevel]);
@@ -530,7 +528,6 @@ export default function App() {
             setSoundOn(next);
             setSoundEnabled(next);
           }}
-          cloudStatus={cloudStatus}
         />
 
         <main className="flex min-h-0 flex-1 flex-col px-4 pb-2">
