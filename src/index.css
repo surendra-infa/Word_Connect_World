@@ -110,6 +110,26 @@ body {
   }
 }
 
+/* ---------- Fireworks ---------- */
+.firework-particle {
+  position: absolute;
+  border-radius: 50%;
+  left: 0;
+  top: 0;
+  animation: fw-burst 1.4s ease-out forwards;
+}
+
+@keyframes fw-burst {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--fw-dx), var(--fw-dy)) scale(0.2);
+    opacity: 0;
+  }
+}
+
 /* Safe-area handling for notch / edge-to-edge devices */
 #root {
   padding-top: env(safe-area-inset-top);

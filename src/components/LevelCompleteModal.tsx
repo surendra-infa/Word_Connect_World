@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Coins, Flame, Play, Sparkles, Star, Trophy } from 'lucide-react';
 import { DIFFICULTY_COLOR, DIFFICULTY_LABEL, type Difficulty } from '@/game/levels';
+import Fireworks from '@/components/Fireworks';
 
 type Props = {
   levelNumber: number;
@@ -45,6 +46,7 @@ export default function LevelCompleteModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <Fireworks />
       <div className="animate-pop absolute inset-0 bg-black/70 backdrop-blur-sm" />
 
       <div className="animate-pop relative w-full max-w-sm overflow-hidden rounded-3xl bg-gradient-to-b from-teal-800 to-emerald-900 p-7 text-center shadow-2xl ring-1 ring-white/20">
