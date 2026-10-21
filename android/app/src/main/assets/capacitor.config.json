@@ -1,5 +1,6 @@
 {
 	"appId": "com.wordconnect.app",
-	"appName": "Word Connect",
-	"webDir": "dist"
+	"appName": "Word Connect World",
+	"webDir": "dist",
+	"backgroundColor": "#0f766e"
 }

@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
+import { wordPoints, hintWordPoints } from '@/game/levels';
 import type { Theme } from '@/game/themes';
 
 type Props = {
   words: string[];
-  total: number;
+  hinted: string[];
   theme: Theme;
   lastFound: string | null;
 };
 
-export default function FoundGrid({ words, total, theme, lastFound }: Props) {
+export default function FoundGrid({ words, hinted, theme, lastFound }: Props) {
   const [landing, setLanding] = useState<string | null>(null);
 
   useEffect(() => {
@@ -19,13 +20,13 @@ export default function FoundGrid({ words, total, theme, lastFound }: Props) {
   }, [lastFound]);
 
   return (
-    <section className="mt-2 flex min-h-0 flex-1 flex-col rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">
-      <div className="mb-2 flex shrink-0 items-center justify-between">
+    <section className="mt-2 flex max-h-40 min-h-0 flex-1 flex-col rounded-2xl bg-white/5 p-2.5 shadow-[0_-1px_0_rgba(255,255,255,0.15)] ring-2 ring-white/25">
+      <div className="mb-1.5 flex shrink-0 items-center justify-between">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-white/50">
           Found words
         </h2>
         <span className="text-xs font-semibold text-white/40">
-          {words.length} / {total}
+          {words.length} word{words.length === 1 ? '' : 's'}
         </span>
       </div>
 
@@ -34,7 +35,7 @@ export default function FoundGrid({ words, total, theme, lastFound }: Props) {
           Words you find will land here.
         </p>
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-1">
+        <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1">
           {words.map((w) => (
             <div
               key={w}
@@ -46,7 +47,7 @@ export default function FoundGrid({ words, total, theme, lastFound }: Props) {
               {w.split('').map((ch, i) => (
                 <span
                   key={i}
-                  className="flex h-8 w-8 items-center justify-center rounded-full px-1 text-sm font-bold uppercase"
+                  className="flex h-7 w-7 items-center justify-center rounded-full px-1 text-xs font-bold uppercase"
                   style={{
                     backgroundColor: theme.chipBg,
                     color: theme.chipText,
@@ -57,7 +58,7 @@ export default function FoundGrid({ words, total, theme, lastFound }: Props) {
                 </span>
               ))}
               <span className="ml-1.5 text-[0.65rem] font-semibold uppercase tracking-wide text-white/30">
-                +{w.length * 10}
+                +{hinted.includes(w) ? hintWordPoints(w) : wordPoints(w)}
               </span>
             </div>
           ))}

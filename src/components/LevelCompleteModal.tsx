@@ -1,15 +1,20 @@
-import { useEffect } from 'react';
-import { Coins, Sparkles, Star, Trophy } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Coins, Flame, Play, Sparkles, Star, Trophy } from 'lucide-react';
+import { DIFFICULTY_COLOR, DIFFICULTY_LABEL, type Difficulty } from '@/game/levels';
+import Fireworks from '@/components/Fireworks';
 
 type Props = {
   levelNumber: number;
   totalLevels: number;
   foundCount: number;
-  totalWords: number;
   score: number;
   coinsEarned: number;
   isFinal: boolean;
   stars: number;
+  streakBonus: number;
+  coinsDoubled: boolean;
+  onDoubleCoins: () => void;
+  nextDifficulty: Difficulty | null;
   onNext: () => void;
 };
 
@@ -17,13 +22,18 @@ export default function LevelCompleteModal({
   levelNumber,
   totalLevels,
   foundCount,
-  totalWords,
   score,
   coinsEarned,
   isFinal,
   stars,
+  streakBonus,
+  coinsDoubled,
+  onDoubleCoins,
+  nextDifficulty,
   onNext,
 }: Props) {
+  const [adPlaying, setAdPlaying] = useState(false);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') onNext();
@@ -32,10 +42,11 @@ export default function LevelCompleteModal({
     return () => window.removeEventListener('keydown', onKey);
   }, [onNext]);
 
-  const pct = Math.round((foundCount / totalWords) * 100);
+  const pct = 100;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <Fireworks />
       <div className="animate-pop absolute inset-0 bg-black/70 backdrop-blur-sm" />
 
       <div className="animate-pop relative w-full max-w-sm overflow-hidden rounded-3xl bg-gradient-to-b from-teal-800 to-emerald-900 p-7 text-center shadow-2xl ring-1 ring-white/20">
@@ -57,9 +68,21 @@ export default function LevelCompleteModal({
             {isFinal ? 'Champion!' : `Level ${levelNumber}`}
           </h2>
           <p className="mt-1 text-sm text-white/60">
-            {isFinal
-              ? `You conquered all ${totalLevels} levels.`
-              : `Get ready for level ${levelNumber + 1}`}
+            {isFinal ? (
+              `You conquered all ${totalLevels} levels.`
+            ) : nextDifficulty ? (
+              <>
+                Get ready for level {levelNumber + 1}{' '}
+                <span
+                  className="font-bold uppercase"
+                  style={{ color: DIFFICULTY_COLOR[nextDifficulty] }}
+                >
+                  ({DIFFICULTY_LABEL[nextDifficulty]})
+                </span>
+              </>
+            ) : (
+              `Get ready for level ${levelNumber + 1}`
+            )}
           </p>
 
           <div className="mt-4 flex items-center justify-center gap-2">
@@ -99,7 +122,7 @@ export default function LevelCompleteModal({
           </p>
 
           <div className="mt-5 space-y-2.5">
-            <Stat label="Words found" value={`${foundCount} / ${totalWords}`} />
+            <Stat label="Words found" value={String(foundCount)} />
             <Stat label="Completion" value={`${pct}%`} />
             <Stat label="Level score" value={String(score)} />
             <div className="flex items-center justify-between rounded-xl bg-amber-400/15 px-4 py-3 ring-1 ring-amber-300/30">
@@ -111,6 +134,44 @@ export default function LevelCompleteModal({
                 +{coinsEarned}
               </span>
             </div>
+            {streakBonus > 0 && (
+              <div
+                className="flex items-center justify-between rounded-xl px-4 py-3 ring-1"
+                style={{
+                  backgroundColor: 'rgba(248,113,113,0.15)',
+                  ['--tw-ring-color' as string]: 'rgba(248,113,113,0.4)',
+                }}
+              >
+                <span className="flex items-center gap-2 text-sm font-semibold text-red-200">
+                  <Flame className="h-4 w-4 text-red-300" />
+                  Hard mode streak
+                </span>
+                <span className="text-lg font-extrabold tabular-nums text-red-200">
+                  +{streakBonus}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Ad doubling reward */}
+          <div className="mt-3 space-y-2">
+            {!coinsDoubled && (
+              <button
+                onClick={() => {
+                  if (adPlaying) return;
+                  setAdPlaying(true);
+                  window.setTimeout(() => {
+                    setAdPlaying(false);
+                    onDoubleCoins();
+                  }, 1500);
+                }}
+                disabled={adPlaying}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-emerald-900/30 ring-1 ring-emerald-300/40 transition hover:brightness-110 active:scale-[0.98] disabled:opacity-70"
+              >
+                <Play className="h-4 w-4 fill-white" />
+                {adPlaying ? 'Ad playing…' : `Watch ad — double coins (+${coinsEarned})`}
+              </button>
+            )}
           </div>
 
           <button

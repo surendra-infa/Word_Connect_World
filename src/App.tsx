@@ -1,40 +1,48 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, RotateCcw, Trash2 } from 'lucide-react';
+import { RotateCcw, Shuffle, Trash2 } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 import WordSlot from '@/components/WordSlot';
 import LetterCircle from '@/components/LetterCircle';
 import FoundGrid from '@/components/FoundGrid';
 import FlyingWord from '@/components/FlyingWord';
 import LevelCompleteModal from '@/components/LevelCompleteModal';
+import StarConversionModal from '@/components/StarConversionModal';
 import HintBar from '@/components/HintBar';
 import AnimatedBackground from '@/components/AnimatedBackground';
+import AnimatedLogo from '@/components/AnimatedLogo';
 import ProgressBar from '@/components/ProgressBar';
-import { LEVELS, TOTAL_LEVELS, levelTargetWords, type Level } from '@/game/levels';
+import Tutorial from '@/components/Tutorial';
+import RestoreDialog from '@/components/RestoreDialog';
+import { LEVELS, TOTAL_LEVELS, PLAYER_SEED, levelTargetWords, wordPoints, hintWordPoints, type Level } from '@/game/levels';
 import { shuffle } from '@/game/puzzle';
 import { themeForLevel, type Theme } from '@/game/themes';
+import {
+  playSelect, playValid, playInvalid, playHint, playFanfare,
+  isSoundEnabled, setSoundEnabled,
+} from '@/game/sound';
+import {
+  uploadSave, downloadSave, getRestoreCode, type CloudSave,
+} from '@/game/cloudSave';
 
 const STORAGE_KEY = 'wordlink-progress-v1';
-const HINT_COST = 20;
+// Paid hints escalate in price within a level: 25, 50, 75, 100, ...
+const HINT_BASE_COST = 25;
 const AD_ALERT_MS = 2200;
-const AUTO_HINT_SECONDS = 30;
+// Free auto-hint: first letter after 30s idle, then one letter per minute.
+const AUTO_HINT_FIRST_SECONDS = 30;
+const AUTO_HINT_NEXT_SECONDS = 60;
 const AUTO_HINT_TICK_MS = 1000;
 
-// Level progress is percent-based: each discovered word contributes by length.
-export function wordProgressPercent(len: number): number {
-  if (len <= 3) return 10;
-  if (len === 4) return 20;
-  return 25; // 5 and 6 letter words
-}
-
-function wordsProgressPercent(words: string[]): number {
-  return words.reduce((sum, w) => sum + wordProgressPercent(w.length), 0);
-}
+// Levels complete at 100 points, where each found word adds points by its
+// length (3-letter = 20, 4-letter = 25, 5+ = 30). All formable words stay
+// valid after completion.
 
 type Saved = {
   levelIndex: number;
   score: number;
   coins: number;
   foundByLevel: Record<number, string[]>;
+  hintedByLevel: Record<number, string[]>;
 };
 
 function loadProgress(): Saved {
@@ -48,23 +56,38 @@ function loadProgress(): Saved {
         typeof parsed.coins === 'number' &&
         parsed.foundByLevel
       ) {
-        return parsed;
+        return { ...parsed, hintedByLevel: parsed.hintedByLevel ?? {} };
       }
     }
   } catch {
     // ignore corrupt storage
   }
-  return { levelIndex: 0, score: 0, coins: 50, foundByLevel: {} };
+  return { levelIndex: 0, score: 0, coins: 50, foundByLevel: {}, hintedByLevel: {} };
+}
+
+function tutorialDone(): boolean {
+  try {
+    return localStorage.getItem('wordlink-tutorial-done') === '1';
+  } catch {
+    return true;
+  }
 }
 
 export default function App() {
   const saved = useRef<Saved>(loadProgress());
+  const isFreshInstall = useRef(
+    !localStorage.getItem('wordlink-progress-v1'),
+  );
 
   const [levelIndex, setLevelIndex] = useState(saved.current.levelIndex);
   const [score, setScore] = useState(saved.current.score);
   const [coins, setCoins] = useState(saved.current.coins);
   const [foundByLevel, setFoundByLevel] = useState<Record<number, string[]>>(
     saved.current.foundByLevel,
+  );
+  // Words found that were revealed by a hint — they earn half points.
+  const [hintedByLevel, setHintedByLevel] = useState<Record<number, string[]>>(
+    saved.current.hintedByLevel,
   );
 
   const [letters, setLetters] = useState<string[]>([]);
@@ -77,36 +100,99 @@ export default function App() {
   const [showComplete, setShowComplete] = useState(false);
   const [levelCoins, setLevelCoins] = useState(0);
   const [levelScoreStart, setLevelScoreStart] = useState(0);
+  const [streakBonus, setStreakBonus] = useState(0);
+  // Star-to-coin conversion and ad-doubling are one-time offers per level.
+  const [coinsDoubled, setCoinsDoubled] = useState(false);
+  const [showStarConversion, setShowStarConversion] = useState(false);
 
   // Hint state: a word being hinted at + which letter positions are revealed.
   const [hint, setHint] = useState<{ word: string; revealed: number[] } | null>(null);
   const [adAlert, setAdAlert] = useState(false);
-  // Hints used this level (manual + auto) — drives the star rating.
-  const [hintsUsed, setHintsUsed] = useState(0);
+  // Letters revealed by hints this level (auto + paid) — drives the star rating:
+  // each revealed letter costs one star; 3+ letters loses all stars.
+  const [lettersRevealed, setLettersRevealed] = useState(0);
+  // Number of paid hints used this level — drives the escalating hint price.
+  const [paidHints, setPaidHints] = useState(0);
+  const hintCost = HINT_BASE_COST * (paidHints + 1);
 
   // Auto-hint: counts down while idle; reaching 0 reveals a free letter.
   const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
 
+  // Tutorial shows once on first launch; restore dialog for reinstalls.
+  const [showTutorial, setShowTutorial] = useState(() => !tutorialDone());
+  const [showRestore, setShowRestore] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+  const [cloudStatus, setCloudStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
   const level: Level = LEVELS[Math.min(levelIndex, TOTAL_LEVELS - 1)];
   const targetWords = useMemo(() => levelTargetWords(level), [level]);
   const targetSet = useMemo(() => new Set(targetWords), [targetWords]);
-  const theme: Theme = useMemo(() => themeForLevel(level.id), [level.id]);
+  const theme: Theme = useMemo(
+    () => themeForLevel(level.id, level.name.toUpperCase()),
+    [level.id, level.name],
+  );
 
   const found = foundByLevel[level.id] ?? [];
+  const hintedWords = hintedByLevel[level.id] ?? [];
   const foundCount = found.length;
-  const levelProgress = Math.min(100, wordsProgressPercent(found));
+  // Levels fill to 100% by word length: 3-letter = 20, 4-letter = 25, 5+ = 30.
+  // Hint-revealed words still count FULL points toward completion — the hint
+  // penalty only reduces the score they earn, never level progress.
+  const levelPoints = found.reduce((sum, w) => sum + wordPoints(w), 0);
+  const levelProgress = Math.min(100, levelPoints);
   const isFinal = levelIndex >= TOTAL_LEVELS - 1;
-  const stars = hintsUsed === 0 ? 3 : hintsUsed === 1 ? 2 : 1;
+  const stars = Math.max(0, 3 - lettersRevealed);
 
-  // Persist progress
+  // Persist progress locally
   useEffect(() => {
-    const data: Saved = { levelIndex, score, coins, foundByLevel };
+    const data: Saved = { levelIndex, score, coins, foundByLevel, hintedByLevel };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
       // ignore quota errors
     }
-  }, [levelIndex, score, coins, foundByLevel]);
+  }, [levelIndex, score, coins, foundByLevel, hintedByLevel]);
+
+  // Mirror progress to the cloud (device-keyed backup, debounced 3s)
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setCloudStatus('saving');
+      const payload: CloudSave = {
+        playerSeed: PLAYER_SEED,
+        levelIndex,
+        score,
+        coins,
+        foundByLevel,
+        hintedByLevel,
+      };
+      void uploadSave(payload).then((ok) => setCloudStatus(ok ? 'saved' : 'idle'));
+    }, 3000);
+    return () => window.clearTimeout(t);
+  }, [levelIndex, score, coins, foundByLevel, hintedByLevel]);
+
+  // Fresh install with no local save: offer to restore from a previous
+  // backup once the tutorial is dismissed.
+  useEffect(() => {
+    if (!isFreshInstall.current || showTutorial) return;
+    let cancelled = false;
+    void downloadSave().then((remote) => {
+      if (cancelled || !remote) return;
+      setShowRestore(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [showTutorial]);
+
+  function applyRestored(remote: CloudSave) {
+    setLevelIndex(Math.max(0, Math.min(remote.levelIndex, TOTAL_LEVELS - 1)));
+    setScore(remote.score);
+    setCoins(remote.coins);
+    setFoundByLevel(remote.foundByLevel);
+    setHintedByLevel(remote.hintedByLevel);
+    setShowRestore(false);
+    flashMessage('Progress restored! 🎉', 1600);
+  }
 
   // Initialize / re-initialize letters when level changes
   useEffect(() => {
@@ -117,10 +203,13 @@ export default function App() {
     setMessage('');
     setLevelScoreStart(score);
     setLevelCoins(0);
+    setStreakBonus(0);
+    setCoinsDoubled(false);
     setShowComplete(false);
     setHint(null);
-    setHintsUsed(0);
-    setAutoCountdown(AUTO_HINT_SECONDS);
+    setLettersRevealed(0);
+    setPaidHints(0);
+    setAutoCountdown(AUTO_HINT_FIRST_SECONDS);
     // score is intentionally read at level-entry only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level.id]);
@@ -147,46 +236,48 @@ export default function App() {
     window.setTimeout(() => setMessage(''), 1200);
   }
 
-  // Reveals the next letter of an unfound word — shared by manual + auto hint.
-  const revealNextHintLetter = useCallback(
+  // Reveals the next single letter of an unfound word — used by the free
+  // auto-hint. Keeps revealing the same word letter by letter; starts a new
+  // word (with its first letter) once the current one is fully shown.
+  const revealHintLetter = useCallback(
     (foundSnapshot: string[], prev: { word: string; revealed: number[] } | null) => {
       const foundSet = new Set(foundSnapshot);
       const remaining = targetWords.filter((w) => !foundSet.has(w));
       if (remaining.length === 0) return null;
 
-      // Prefer continuing an existing unfound hint; otherwise pick a fresh word.
+      if (prev && !foundSet.has(prev.word) && prev.revealed.length < prev.word.length) {
+        return { word: prev.word, revealed: [...prev.revealed, prev.revealed.length] };
+      }
+      const word = remaining[Math.floor(Math.random() * remaining.length)];
+      return { word, revealed: [0] };
+    },
+    [targetWords],
+  );
+
+  // Reveals an entire unfound word — used by the paid hint.
+  const revealHintWord = useCallback(
+    (foundSnapshot: string[], prev: { word: string; revealed: number[] } | null) => {
+      const foundSet = new Set(foundSnapshot);
+      const remaining = targetWords.filter((w) => !foundSet.has(w));
+      if (remaining.length === 0) return null;
+
+      // Prefer revealing a word the auto-hint already started showing.
       let word = prev?.word;
-      if (!word || foundSet.has(word)) {
+      if (!word || foundSet.has(word) || prev!.revealed.length === word!.length) {
         word = remaining[Math.floor(Math.random() * remaining.length)];
       }
-
-      const already = prev && prev.word === word ? prev.revealed : [];
-      const hidden = word
-        .split('')
-        .map((_, i) => i)
-        .filter((i) => !already.includes(i));
-
-      if (hidden.length === 0) {
-        // Fully revealed — start fresh on another word.
-        const freshPool = remaining.filter((w) => w !== word);
-        if (freshPool.length === 0) return prev;
-        const fresh = freshPool[Math.floor(Math.random() * freshPool.length)];
-        const firstHidden = Math.floor(Math.random() * fresh.length);
-        return { word: fresh, revealed: [firstHidden] };
-      }
-
-      const pick = hidden[Math.floor(Math.random() * hidden.length)];
-      return { word, revealed: [...already, pick].sort((a, b) => a - b) };
+      return { word, revealed: word.split('').map((_, i) => i) };
     },
     [targetWords],
   );
 
   function resetAutoHintTimer() {
-    setAutoCountdown(AUTO_HINT_SECONDS);
+    setAutoCountdown(hint ? AUTO_HINT_NEXT_SECONDS : AUTO_HINT_FIRST_SECONDS);
   }
 
   function pickLetter(index: number) {
     if (used[index] || status !== 'idle' || showComplete) return;
+    playSelect(picked.length);
     setUsed((u) => u.map((v, i) => (i === index ? true : v)));
     setPicked((p) => [...p, index]);
     resetAutoHintTimer();
@@ -230,6 +321,7 @@ export default function App() {
   function submit() {
     if (picked.length < 3) {
       setStatus('invalid');
+      playInvalid();
       flashMessage('At least 3 letters 🙃');
       window.setTimeout(() => setStatus('idle'), 600);
       resetAutoHintTimer();
@@ -238,6 +330,7 @@ export default function App() {
     const word = currentWord.join('');
     if (!targetSet.has(word)) {
       setStatus('invalid');
+      playInvalid();
       flashEncouragement();
       window.setTimeout(() => setStatus('idle'), 700);
       resetAutoHintTimer();
@@ -245,6 +338,7 @@ export default function App() {
     }
     if (found.includes(word)) {
       setStatus('invalid');
+      playInvalid();
       flashMessage('Already found 😊');
       window.setTimeout(() => setStatus('idle'), 700);
       resetAutoHintTimer();
@@ -252,7 +346,18 @@ export default function App() {
     }
 
     const newFound = [...found, word];
-    const earned = word.length * 10 + (word.length === level.letters.length ? 50 : 0);
+    // A word currently being revealed by a hint earns half score, but FULL
+    // points toward the 100-point completion goal.
+    const isHinted = hint?.word === word;
+    if (isHinted) {
+      setHintedByLevel((m) => {
+        const list = m[level.id] ?? [];
+        return list.includes(word) ? m : { ...m, [level.id]: [...list, word] };
+      });
+    }
+    const wordPts = isHinted ? hintWordPoints(word) : wordPoints(word);
+    const earned =
+      wordPts + (!isHinted && word.length === level.letters.length ? 50 : 0);
     const coinEarned = word.length;
     setScore((s) => s + earned);
     setCoins((c) => c + coinEarned);
@@ -262,16 +367,30 @@ export default function App() {
       [level.id]: newFound,
     }));
     setStatus('valid');
+    playValid();
     setFlyingWord(word);
     setLastFound(word);
     resetAutoHintTimer();
     window.setTimeout(() => clearWord(), 650);
 
-    // Level completes when weighted progress reaches 100%.
-    if (wordsProgressPercent(newFound) >= 100 && !showComplete) {
+    // Level completes as soon as the full points from every word found so far
+    // (including the one just submitted) reach 100. Computed from newFound so
+    // the just-submitted word counts — checking the previous render's total
+    // made levels finish one word late. Hinted words count at full value here.
+    const newPoints = newFound.reduce((sum, w) => sum + wordPoints(w), 0);
+    if (newPoints >= 100 && !showComplete) {
       const bonus = level.masteryBonus;
       setCoins((c) => c + bonus);
       setLevelCoins((c) => c + bonus);
+      // Hard-mode streak: finish a hard level with zero revealed letters
+      // for an extra coin reward.
+      const streak = level.difficulty === 'hard' && lettersRevealed === 0 ? 50 : 0;
+      if (streak > 0) {
+        setCoins((c) => c + streak);
+        setLevelCoins((c) => c + streak);
+      }
+      setStreakBonus(streak);
+      playFanfare();
       window.setTimeout(() => {
         setShowComplete(true);
         setAutoCountdown(null);
@@ -279,11 +398,27 @@ export default function App() {
     }
   }
 
+  function doubleCoins() {
+    if (coinsDoubled) return;
+    setCoins((c) => c + levelCoins);
+    setLevelCoins((c) => c * 2);
+    setCoinsDoubled(true);
+  }
+
+  function convertStars(amount: number) {
+    if (amount <= 0 || amount > score) return;
+    const coinsEarned = Math.floor(amount / 10);
+    if (coinsEarned <= 0) return;
+    setScore((s) => Math.max(0, s - amount));
+    setCoins((c) => c + coinsEarned);
+  }
+
   function nextLevel() {
     if (isFinal) {
       // restart from level 1, keep coins
       setLevelIndex(0);
       setFoundByLevel({});
+      setHintedByLevel({});
       setScore(0);
     } else {
       setLevelIndex((i) => Math.min(i + 1, TOTAL_LEVELS - 1));
@@ -293,15 +428,21 @@ export default function App() {
   function useHint() {
     if (showComplete) return;
 
-    if (coins < HINT_COST) {
+    if (coins < hintCost) {
       setAdAlert(true);
       window.setTimeout(() => setAdAlert(false), AD_ALERT_MS);
       return;
     }
 
-    setHint((prev) => revealNextHintLetter(found, prev));
-    setCoins((c) => Math.max(0, c - HINT_COST));
-    setHintsUsed((n) => n + 1);
+    const newHint = revealHintWord(found, hint);
+    setHint(newHint);
+    if (newHint) {
+      playHint();
+      const already = hint && hint.word === newHint.word ? hint.revealed.length : 0;
+      setLettersRevealed((n) => n + newHint.word.length - already);
+    }
+    setCoins((c) => Math.max(0, c - hintCost));
+    setPaidHints((n) => n + 1);
     resetAutoHintTimer();
   }
 
@@ -314,17 +455,18 @@ export default function App() {
       setAutoCountdown((c) => {
         if (c === null) return null;
         if (c <= 1) {
-          // Fire a free auto-hint this tick.
-          setHint((prev) => revealNextHintLetter(found, prev));
-          setHintsUsed((n) => n + 1);
-          return AUTO_HINT_SECONDS;
+          // Fire a free auto-hint this tick: reveals one letter (no coins),
+          // but each revealed letter costs one star.
+          setHint((prev) => revealHintLetter(found, prev));
+          setLettersRevealed((n) => n + 1);
+          return AUTO_HINT_NEXT_SECONDS;
         }
         return c - 1;
       });
     }, AUTO_HINT_TICK_MS);
 
     return () => window.clearInterval(id);
-  }, [showComplete, status, autoCountdown === null, found, revealNextHintLetter]);
+  }, [showComplete, status, autoCountdown === null, found, revealHintLetter]);
 
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden font-sans text-white">
@@ -337,29 +479,67 @@ export default function App() {
           levelNumber={level.id}
           totalLevels={TOTAL_LEVELS}
           foundCount={foundCount}
-          totalWords={targetWords.length}
           score={score - levelScoreStart}
           coinsEarned={levelCoins}
           isFinal={isFinal}
           stars={stars}
+          streakBonus={streakBonus}
+          coinsDoubled={coinsDoubled}
+          onDoubleCoins={doubleCoins}
+          nextDifficulty={
+            isFinal ? null : LEVELS[Math.min(levelIndex + 1, TOTAL_LEVELS - 1)].difficulty
+          }
           onNext={nextLevel}
         />
       )}
 
+      {showStarConversion && (
+        <StarConversionModal
+          stars={score}
+          theme={theme}
+          onClose={() => setShowStarConversion(false)}
+          onConvert={convertStars}
+        />
+      )}
+
       {adAlert && <AdAlert theme={theme} />}
+
+      {showTutorial && (
+        <Tutorial theme={theme} onDone={() => setShowTutorial(false)} />
+      )}
+
+      {showRestore && (
+        <RestoreDialog
+          theme={theme}
+          onRestore={applyRestored}
+          onClose={() => setShowRestore(false)}
+        />
+      )}
 
       <div className="relative z-10 mx-auto flex h-[100dvh] w-full max-w-md flex-col">
         <TopBar
           score={score}
           coins={coins}
           level={level.id}
-          onShuffle={doShuffle}
+          difficulty={level.difficulty}
           theme={theme}
+          onOpenStarConversion={() => setShowStarConversion(true)}
+          soundOn={soundOn}
+          onToggleSound={() => {
+            const next = !soundOn;
+            setSoundOn(next);
+            setSoundEnabled(next);
+          }}
+          cloudStatus={cloudStatus}
         />
 
-        <main className="flex min-h-0 flex-1 flex-col px-4">
+        <main className="flex min-h-0 flex-1 flex-col px-4 pb-2">
           <div className="relative z-20 shrink-0">
             <WordSlot word={currentWord} status={status} message={message} theme={theme} />
+          </div>
+
+          <div className="relative z-10 flex shrink-0 justify-center pt-1">
+            <AnimatedLogo />
           </div>
 
           <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center py-2">
@@ -375,6 +555,13 @@ export default function App() {
 
           <div className="relative z-20 mt-2 flex shrink-0 items-center justify-center gap-3">
             <button
+              onClick={doShuffle}
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white/80 ring-1 ring-white/15 transition hover:bg-white/15 active:scale-90"
+              aria-label="Shuffle letters"
+            >
+              <Shuffle className="h-5 w-5" />
+            </button>
+            <button
               onClick={clearWord}
               className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white/80 ring-1 ring-white/15 transition hover:bg-white/15 active:scale-90"
               aria-label="Clear"
@@ -388,20 +575,14 @@ export default function App() {
             >
               <RotateCcw className="h-5 w-5" />
             </button>
-            <button
-              onClick={submit}
-              disabled={picked.length === 0 || status === 'valid'}
-              className="flex h-14 w-14 items-center justify-center rounded-full shadow-lg ring-1 transition hover:brightness-105 active:scale-95 disabled:opacity-40"
-              style={{
-                backgroundImage: `linear-gradient(to bottom, ${theme.accent}, ${theme.accentStrong})`,
-                color: theme.accentInk,
-                boxShadow: `0 8px 20px -6px ${theme.accentStrong}55`,
-                ['--tw-ring-color' as string]: `${theme.accentSoft}99`,
-              }}
-              aria-label="Submit word"
-            >
-              <Check className="h-6 w-6" strokeWidth={3} />
-            </button>
+            <HintBar
+              coins={coins}
+              hintCost={hintCost}
+              hint={hint}
+              onUseHint={useHint}
+              theme={theme}
+              autoHintCountdown={autoCountdown}
+            />
           </div>
 
           <div className="mt-2 shrink-0">
@@ -415,20 +596,11 @@ export default function App() {
 
           <FoundGrid
             words={found}
-            total={targetWords.length}
+            hinted={hintedWords}
             theme={theme}
             lastFound={lastFound}
           />
         </main>
-
-        <HintBar
-          coins={coins}
-          hintCost={HINT_COST}
-          hint={hint}
-          onUseHint={useHint}
-          theme={theme}
-          autoHintCountdown={autoCountdown}
-        />
       </div>
     </div>
   );

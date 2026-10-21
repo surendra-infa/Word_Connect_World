@@ -24,6 +24,12 @@ for (const w of WORD_LIST) {
 }
 
 export function getFormableWords(letters: string[]): string[] {
+  // Levels share the same letter multiset (only shuffled), so cache by the
+  // sorted letter key — otherwise startup re-scans the full word list once
+  // per level and blocks the first paint for seconds.
+  const key = [...letters].sort().join('');
+  const cached = formableCache.get(key);
+  if (cached) return cached;
   const pool: Record<string, number> = {};
   for (const ch of letters) {
     const k = ch.toUpperCase();
@@ -42,8 +48,12 @@ export function getFormableWords(letters: string[]): string[] {
     }
     if (ok) out.push(w);
   }
-  return out.sort();
+  out.sort();
+  formableCache.set(key, out);
+  return out;
 }
+
+const formableCache = new Map<string, string[]>();
 
 export const WORD_COUNT = WORD_LIST.length;
 export { LETTER_FREQ };

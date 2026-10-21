@@ -117,7 +117,7 @@ export default function LetterCircle({ letters, used, onPick, onUndo, onSwipeEnd
       onPointerCancel={onPointerUp}
     >
       <div
-        className="absolute inset-[14%] rounded-full ring-1"
+        className="absolute inset-[10%] rounded-full ring-1"
         style={{
           backgroundColor: 'rgba(255,255,255,0.05)',
           ['--tw-ring-color' as string]: 'rgba(255,255,255,0.1)',
