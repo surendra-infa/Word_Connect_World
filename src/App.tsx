@@ -9,6 +9,7 @@ import LevelCompleteModal from '@/components/LevelCompleteModal';
 import StarConversionModal from '@/components/StarConversionModal';
 import HintBar from '@/components/HintBar';
 import AnimatedBackground from '@/components/AnimatedBackground';
+import AnimatedLogo from '@/components/AnimatedLogo';
 import ProgressBar from '@/components/ProgressBar';
 import { LEVELS, TOTAL_LEVELS, levelTargetWords, wordPoints, hintWordPoints, type Level } from '@/game/levels';
 import { shuffle } from '@/game/puzzle';
@@ -439,6 +440,10 @@ export default function App() {
         <main className="flex min-h-0 flex-1 flex-col px-4 pb-2">
           <div className="relative z-20 shrink-0">
             <WordSlot word={currentWord} status={status} message={message} theme={theme} />
+          </div>
+
+          <div className="relative z-10 flex shrink-0 justify-center pt-1">
+            <AnimatedLogo />
           </div>
 
           <div className="relative z-10 flex min-h-0 flex-1 items-center justify-center py-2">
