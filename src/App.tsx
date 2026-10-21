@@ -105,12 +105,10 @@ export default function App() {
   const found = foundByLevel[level.id] ?? [];
   const hintedWords = hintedByLevel[level.id] ?? [];
   const foundCount = found.length;
-  // Levels fill to 100% by word length: 3-letter = 20, 4-letter = 25, 5+ = 30;
-  // hint-revealed words count half.
-  const levelPoints = found.reduce(
-    (sum, w) => sum + (hintedWords.includes(w) ? hintWordPoints(w) : wordPoints(w)),
-    0,
-  );
+  // Levels fill to 100% by word length: 3-letter = 20, 4-letter = 25, 5+ = 30.
+  // Hint-revealed words still count FULL points toward completion — the hint
+  // penalty only reduces the score they earn, never level progress.
+  const levelPoints = found.reduce((sum, w) => sum + wordPoints(w), 0);
   const levelProgress = Math.min(100, levelPoints);
   const isFinal = levelIndex >= TOTAL_LEVELS - 1;
   const stars = Math.max(0, 3 - lettersRevealed);
@@ -273,8 +271,8 @@ export default function App() {
     }
 
     const newFound = [...found, word];
-    // A word currently being revealed by a hint earns half points, toward
-    // both score and the 100-point completion goal.
+    // A word currently being revealed by a hint earns half score, but FULL
+    // points toward the 100-point completion goal.
     const isHinted = hint?.word === word;
     if (isHinted) {
       setHintedByLevel((m) => {
@@ -299,15 +297,11 @@ export default function App() {
     resetAutoHintTimer();
     window.setTimeout(() => clearWord(), 650);
 
-    // Level completes as soon as the points from every word found so far
+    // Level completes as soon as the full points from every word found so far
     // (including the one just submitted) reach 100. Computed from newFound so
     // the just-submitted word counts — checking the previous render's total
-    // made levels finish one word late.
-    const hintedSet = new Set([...hintedWords, ...(isHinted ? [word] : [])]);
-    const newPoints = newFound.reduce(
-      (sum, w) => sum + (hintedSet.has(w) ? hintWordPoints(w) : wordPoints(w)),
-      0,
-    );
+    // made levels finish one word late. Hinted words count at full value here.
+    const newPoints = newFound.reduce((sum, w) => sum + wordPoints(w), 0);
     if (newPoints >= 100 && !showComplete) {
       const bonus = level.masteryBonus;
       setCoins((c) => c + bonus);
