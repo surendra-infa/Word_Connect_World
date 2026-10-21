@@ -36,23 +36,20 @@ export const DIFFICULTY_COLOR: Record<Difficulty, string> = {
 };
 
 // Seed words (6–7 letters, common, form many sub-words). Procedurally
-// generated levels sample from this pool so we can produce 2500 unique
-// puzzles without hand-curating each one.
+// generated levels sample from this pool so we can produce thousands of
+// unique puzzles without hand-curating each one.
 const SEED_POOL: string[] = [
   'GARDEN', 'CASTLE', 'PLANET', 'OCEANS', 'WINDOW', 'MASTER', 'SILVER',
   'GUITAR', 'POCKET', 'FOREST', 'BRIDGE', 'SUMMER', 'WINTER', 'SPRING',
-  'AUTUMN', 'ROCKET', 'TEMPLE', 'BLOOMS', 'KITCHEN', 'MARKET', 'DRAGON',
-  'KNIGHT', 'PIRATE', 'ISLAND', 'DESERT', 'JUNGLE', 'MANTLE', 'RIVERS',
-  'VALLEY', 'MEADOW', 'HARBOR', 'TUNNEL', 'MARBLE', 'PRAIRIE', 'GLACIER',
-  'VOLCANO', 'COMETS', 'FLOWER', 'NEPTUNE', 'SATURN', 'JUPITER', 'WEIGHT',
-  'GOLDEN', 'STELLAR', 'CHAMPION', 'GALAXY', 'BASKET', 'CANDLE', 'DOCTOR',
-  'ELEPHANT', 'FACTORY', 'GHOSTS', 'HEALTH', 'INKWELL', 'JOURNEY', 'KEYWORD',
-  'LADDER', 'MONSTER', 'NUMBERS', 'ORCHARD', 'PENGUIN', 'QUARTZ', 'RHYTHM',
-  'SANDWICH', 'TRAVEL', 'UMBRELLA', 'VOCAL', 'WIZARD', 'XYLOPHONE', 'YACHTS',
-  'ZEBRAS', 'ANGELS', 'BUTTON', 'CRYSTAL', 'DOLPHIN', 'ENGINE', 'FEATHER',
-  'GIRAFFE', 'HARMONY', 'IGLOOS', 'JELLYF', 'KINGDOM', 'LANTERN', 'MAGNETS',
-  'NOODLE', 'OCTOPUS', 'PUZZLE', 'QUOKKA', 'RAINBOW', 'SHADOW', 'TORNADO',
-  'UNICORN', 'VORTEX', 'WHALES', 'CIRCUS', 'PLANET', 'BUTTER', 'GARDEN',
+  'AUTUMN', 'ROCKET', 'TEMPLE', 'MARKET', 'DRAGON', 'KNIGHT', 'PIRATE',
+  'ISLAND', 'DESERT', 'JUNGLE', 'RIVERS', 'VALLEY', 'MEADOW', 'HARBOR',
+  'TUNNEL', 'MARBLE', 'VOLCANO', 'FLOWER', 'SATURN', 'JUPITER', 'WEIGHT',
+  'GOLDEN', 'GALAXY', 'BASKET', 'CANDLE', 'DOCTOR', 'FACTORY', 'HEALTH',
+  'JOURNEY', 'LADDER', 'MONSTER', 'NUMBERS', 'ORCHARD', 'PENGUIN', 'QUARTZ',
+  'RHYTHM', 'TRAVEL', 'WIZARD', 'ZEBRAS', 'ANGELS', 'BUTTON', 'CRYSTAL',
+  'DOLPHIN', 'ENGINE', 'FEATHER', 'GIRAFFE', 'HARMONY', 'KINGDOM', 'LANTERN',
+  'MAGNETS', 'NOODLE', 'OCTOPUS', 'PUZZLE', 'RAINBOW', 'SHADOW', 'TORNADO',
+  'UNICORN', 'VORTEX', 'WHALES', 'CIRCUS', 'BUTTER',
 ];
 
 function seededShuffle<T>(arr: T[], seed: number): T[] {

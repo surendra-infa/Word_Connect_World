@@ -11,9 +11,18 @@ import HintBar from '@/components/HintBar';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import AnimatedLogo from '@/components/AnimatedLogo';
 import ProgressBar from '@/components/ProgressBar';
-import { LEVELS, TOTAL_LEVELS, levelTargetWords, wordPoints, hintWordPoints, type Level } from '@/game/levels';
+import Tutorial from '@/components/Tutorial';
+import RestoreDialog from '@/components/RestoreDialog';
+import { LEVELS, TOTAL_LEVELS, PLAYER_SEED, levelTargetWords, wordPoints, hintWordPoints, type Level } from '@/game/levels';
 import { shuffle } from '@/game/puzzle';
 import { themeForLevel, type Theme } from '@/game/themes';
+import {
+  playSelect, playValid, playInvalid, playHint, playFanfare,
+  isSoundEnabled, setSoundEnabled,
+} from '@/game/sound';
+import {
+  uploadSave, downloadSave, getRestoreCode, type CloudSave,
+} from '@/game/cloudSave';
 
 const STORAGE_KEY = 'wordlink-progress-v1';
 // Paid hints escalate in price within a level: 25, 50, 75, 100, ...
@@ -56,8 +65,19 @@ function loadProgress(): Saved {
   return { levelIndex: 0, score: 0, coins: 50, foundByLevel: {}, hintedByLevel: {} };
 }
 
+function tutorialDone(): boolean {
+  try {
+    return localStorage.getItem('wordlink-tutorial-done') === '1';
+  } catch {
+    return true;
+  }
+}
+
 export default function App() {
   const saved = useRef<Saved>(loadProgress());
+  const isFreshInstall = useRef(
+    !localStorage.getItem('wordlink-progress-v1'),
+  );
 
   const [levelIndex, setLevelIndex] = useState(saved.current.levelIndex);
   const [score, setScore] = useState(saved.current.score);
@@ -98,6 +118,12 @@ export default function App() {
   // Auto-hint: counts down while idle; reaching 0 reveals a free letter.
   const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
 
+  // Tutorial shows once on first launch; restore dialog for reinstalls.
+  const [showTutorial, setShowTutorial] = useState(() => !tutorialDone());
+  const [showRestore, setShowRestore] = useState(false);
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+  const [cloudStatus, setCloudStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
   const level: Level = LEVELS[Math.min(levelIndex, TOTAL_LEVELS - 1)];
   const targetWords = useMemo(() => levelTargetWords(level), [level]);
   const targetSet = useMemo(() => new Set(targetWords), [targetWords]);
@@ -114,7 +140,7 @@ export default function App() {
   const isFinal = levelIndex >= TOTAL_LEVELS - 1;
   const stars = Math.max(0, 3 - lettersRevealed);
 
-  // Persist progress
+  // Persist progress locally
   useEffect(() => {
     const data: Saved = { levelIndex, score, coins, foundByLevel, hintedByLevel };
     try {
@@ -123,6 +149,47 @@ export default function App() {
       // ignore quota errors
     }
   }, [levelIndex, score, coins, foundByLevel, hintedByLevel]);
+
+  // Mirror progress to the cloud (device-keyed backup, debounced 3s)
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setCloudStatus('saving');
+      const payload: CloudSave = {
+        playerSeed: PLAYER_SEED,
+        levelIndex,
+        score,
+        coins,
+        foundByLevel,
+        hintedByLevel,
+      };
+      void uploadSave(payload).then((ok) => setCloudStatus(ok ? 'saved' : 'idle'));
+    }, 3000);
+    return () => window.clearTimeout(t);
+  }, [levelIndex, score, coins, foundByLevel, hintedByLevel]);
+
+  // Fresh install with no local save: offer to restore from a previous
+  // backup once the tutorial is dismissed.
+  useEffect(() => {
+    if (!isFreshInstall.current || showTutorial) return;
+    let cancelled = false;
+    void downloadSave().then((remote) => {
+      if (cancelled || !remote) return;
+      setShowRestore(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [showTutorial]);
+
+  function applyRestored(remote: CloudSave) {
+    setLevelIndex(Math.max(0, Math.min(remote.levelIndex, TOTAL_LEVELS - 1)));
+    setScore(remote.score);
+    setCoins(remote.coins);
+    setFoundByLevel(remote.foundByLevel);
+    setHintedByLevel(remote.hintedByLevel);
+    setShowRestore(false);
+    flashMessage('Progress restored! 🎉', 1600);
+  }
 
   // Initialize / re-initialize letters when level changes
   useEffect(() => {
@@ -207,6 +274,7 @@ export default function App() {
 
   function pickLetter(index: number) {
     if (used[index] || status !== 'idle' || showComplete) return;
+    playSelect(picked.length);
     setUsed((u) => u.map((v, i) => (i === index ? true : v)));
     setPicked((p) => [...p, index]);
     resetAutoHintTimer();
@@ -250,6 +318,7 @@ export default function App() {
   function submit() {
     if (picked.length < 3) {
       setStatus('invalid');
+      playInvalid();
       flashMessage('At least 3 letters 🙃');
       window.setTimeout(() => setStatus('idle'), 600);
       resetAutoHintTimer();
@@ -258,6 +327,7 @@ export default function App() {
     const word = currentWord.join('');
     if (!targetSet.has(word)) {
       setStatus('invalid');
+      playInvalid();
       flashEncouragement();
       window.setTimeout(() => setStatus('idle'), 700);
       resetAutoHintTimer();
@@ -265,6 +335,7 @@ export default function App() {
     }
     if (found.includes(word)) {
       setStatus('invalid');
+      playInvalid();
       flashMessage('Already found 😊');
       window.setTimeout(() => setStatus('idle'), 700);
       resetAutoHintTimer();
@@ -293,6 +364,7 @@ export default function App() {
       [level.id]: newFound,
     }));
     setStatus('valid');
+    playValid();
     setFlyingWord(word);
     setLastFound(word);
     resetAutoHintTimer();
@@ -315,6 +387,7 @@ export default function App() {
         setLevelCoins((c) => c + streak);
       }
       setStreakBonus(streak);
+      playFanfare();
       window.setTimeout(() => {
         setShowComplete(true);
         setAutoCountdown(null);
@@ -361,6 +434,7 @@ export default function App() {
     const newHint = revealHintWord(found, hint);
     setHint(newHint);
     if (newHint) {
+      playHint();
       const already = hint && hint.word === newHint.word ? hint.revealed.length : 0;
       setLettersRevealed((n) => n + newHint.word.length - already);
     }
@@ -427,6 +501,18 @@ export default function App() {
 
       {adAlert && <AdAlert theme={theme} />}
 
+      {showTutorial && (
+        <Tutorial theme={theme} onDone={() => setShowTutorial(false)} />
+      )}
+
+      {showRestore && (
+        <RestoreDialog
+          theme={theme}
+          onRestore={applyRestored}
+          onClose={() => setShowRestore(false)}
+        />
+      )}
+
       <div className="relative z-10 mx-auto flex h-[100dvh] w-full max-w-md flex-col">
         <TopBar
           score={score}
@@ -435,6 +521,13 @@ export default function App() {
           difficulty={level.difficulty}
           theme={theme}
           onOpenStarConversion={() => setShowStarConversion(true)}
+          soundOn={soundOn}
+          onToggleSound={() => {
+            const next = !soundOn;
+            setSoundOn(next);
+            setSoundEnabled(next);
+          }}
+          cloudStatus={cloudStatus}
         />
 
         <main className="flex min-h-0 flex-1 flex-col px-4 pb-2">
