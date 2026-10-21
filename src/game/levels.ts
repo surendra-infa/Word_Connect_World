@@ -92,17 +92,43 @@ function bonusFor(diff: Difficulty): number {
   return diff === 'easy' ? 15 : diff === 'medium' ? 25 : 40;
 }
 
-// Levels 1–10 are easy so new players learn the mechanics.
-function pickSeed(id: number, diff: Difficulty): string {
+// A per-player seed rotates which seed words and letter arrangements each
+// player sees, so no two players get the same level sequence. Stored on
+// device; generated once on first launch.
+const PLAYER_SEED_KEY = 'wordlink-player-seed';
+function loadPlayerSeed(): number {
+  try {
+    const raw = localStorage.getItem(PLAYER_SEED_KEY);
+    if (raw) {
+      const n = Number(raw);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+  } catch {
+    // ignore
+  }
+  const seed = Math.floor(Math.random() * 1_000_000) + 1;
+  try {
+    localStorage.setItem(PLAYER_SEED_KEY, String(seed));
+  } catch {
+    // ignore
+  }
+  return seed;
+}
+export const PLAYER_SEED = loadPlayerSeed();
+
+function pickSeed(id: number, _diff: Difficulty, playerSeed: number): string {
   const pool = SEED_POOL;
-  const start = (id * 7 + 13) % pool.length;
+  // Combine the level id and player seed so each player gets a different
+  // rotation through the pool, then step forward to avoid repeating nearby
+  // levels.
+  const start = (id * 7 + playerSeed * 13) % pool.length;
   return pool[start];
 }
 
-function makeLevel(id: number): Level {
+function makeLevel(id: number, playerSeed: number): Level {
   const diff = difficultyFor(id);
-  const seed = pickSeed(id, diff);
-  const letters = seededShuffle(seed.split(''), id * 31 + 7);
+  const seed = pickSeed(id, diff, playerSeed);
+  const letters = seededShuffle(seed.split(''), id * 31 + 7 + playerSeed);
   return {
     id,
     name: seed.charAt(0) + seed.slice(1).toLowerCase(),
@@ -112,7 +138,9 @@ function makeLevel(id: number): Level {
   };
 }
 
-export const LEVELS: Level[] = Array.from({ length: 2500 }, (_, i) => makeLevel(i + 1));
+export const LEVELS: Level[] = Array.from({ length: 2500 }, (_, i) =>
+  makeLevel(i + 1, PLAYER_SEED),
+);
 
 export function getLevel(index: number): Level {
   return LEVELS[Math.max(0, Math.min(index, LEVELS.length - 1))];
