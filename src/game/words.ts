@@ -5,7 +5,30 @@ import raw from 'an-array-of-english-words';
 
 const ALL: string[] = raw as unknown as string[];
 
-const WORD_LIST = ALL
+// The bundled dictionary is broad but omits some everyday words. Keep a small
+// supplemental list for common player expectations and ordinary inflections.
+const COMMON_WORDS = [
+  'A', 'I', 'AM', 'AN', 'AS', 'AT', 'BE', 'BY', 'DO', 'GO', 'HE', 'IF', 'IN',
+  'IS', 'IT', 'ME', 'MY', 'NO', 'OF', 'OH', 'ON', 'OR', 'SO', 'TO', 'UP',
+  'US', 'WE',
+  'ABLE', 'ABOUT', 'ABOVE', 'AFTER', 'AGAIN', 'ALONG', 'ALSO', 'AMONG', 'AREA',
+  'AROUND', 'AWAY', 'BACK', 'BEEN', 'BEFORE', 'BEING', 'BELOW', 'BETWEEN',
+  'BOTH', 'BRING', 'BUILT', 'CALLS', 'CAME', 'COME', 'COULD', 'DOES', 'DONE',
+  'DOWN', 'EACH', 'EVEN', 'EVER', 'EVERY', 'FIND', 'FIRST', 'FROM', 'GETS',
+  'GIVE', 'GIVES', 'GOING', 'GOOD', 'GREAT', 'HAVE', 'HELP', 'HERE', 'HIGH',
+  'HOME', 'JUST', 'KEEP', 'KIND', 'KNOW', 'LAST', 'LIFE', 'LIKE', 'LITTLE',
+  'LOOK', 'MADE', 'MAKE', 'MANY', 'MORE', 'MOST', 'MUCH', 'MUST', 'NEED',
+  'NEVER', 'NEXT', 'ONLY', 'OPEN', 'OTHER', 'OVER', 'PART', 'PLACE', 'PLAY',
+  'POINT', 'PUTS', 'READ', 'REAL', 'RIGHT', 'SAID', 'SAME', 'SAYS', 'SEEM',
+  'SHOW', 'SMALL', 'SOME', 'SOMETHING', 'SOON', 'STILL', 'SUCH', 'TAKE',
+  'THAN', 'THAT', 'THEM', 'THEN', 'THERE', 'THESE', 'THEY', 'THING', 'THINK',
+  'THIS', 'THOSE', 'THREE', 'TIME', 'TODAY', 'TOGETHER', 'TOO', 'TURN',
+  'UNDER', 'UNTIL', 'VERY', 'WANT', 'WANTS', 'WELL', 'WENT', 'WHAT', 'WHEN',
+  'WHERE', 'WHICH', 'WHILE', 'WHOLE', 'WILL', 'WITH', 'WORK', 'WORKS', 'WOULD',
+  'YEAR', 'YOUR',
+];
+
+const WORD_LIST = [...new Set([...ALL, ...COMMON_WORDS])]
   .map((w) => w.trim().toUpperCase())
   .filter((w) => /^[A-Z]{3,7}$/.test(w))
   .sort();
