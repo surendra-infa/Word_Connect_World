@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, RotateCcw, Shuffle, Trash2 } from 'lucide-react';
+import { RotateCcw, Shuffle, Trash2 } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 import WordSlot from '@/components/WordSlot';
 import LetterCircle from '@/components/LetterCircle';
@@ -580,20 +580,6 @@ export default function App() {
               theme={theme}
               autoHintCountdown={autoCountdown}
             />
-            <button
-              onClick={submit}
-              disabled={picked.length === 0 || status === 'valid'}
-              className="flex h-14 w-14 items-center justify-center rounded-full shadow-lg ring-1 transition hover:brightness-105 active:scale-95 disabled:opacity-40"
-              style={{
-                backgroundImage: `linear-gradient(to bottom, ${theme.accent}, ${theme.accentStrong})`,
-                color: theme.accentInk,
-                boxShadow: `0 8px 20px -6px ${theme.accentStrong}55`,
-                ['--tw-ring-color' as string]: `${theme.accentSoft}99`,
-              }}
-              aria-label="Submit word"
-            >
-              <Check className="h-6 w-6" strokeWidth={3} />
-            </button>
           </div>
 
           <div className="mt-2 shrink-0">
