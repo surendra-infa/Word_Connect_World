@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Coins, Flame, Play, Sparkles, Star, Trophy } from 'lucide-react';
 import { DIFFICULTY_COLOR, DIFFICULTY_LABEL, type Difficulty } from '@/game/levels';
+import { adsAvailable } from '@/game/ads';
 import Fireworks from '@/components/Fireworks';
 
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
   stars: number;
   streakBonus: number;
   coinsDoubled: boolean;
+  adBusy: boolean;
   onDoubleCoins: () => void;
   nextDifficulty: Difficulty | null;
   onNext: () => void;
@@ -28,6 +30,7 @@ export default function LevelCompleteModal({
   stars,
   streakBonus,
   coinsDoubled,
+  adBusy,
   onDoubleCoins,
   nextDifficulty,
   onNext,
@@ -158,14 +161,14 @@ export default function LevelCompleteModal({
             {!coinsDoubled && (
               <button
                 onClick={() => {
-                  if (adPlaying) return;
+                  if (adBusy) return;
                   setAdPlaying(true);
-                  window.setTimeout(() => {
-                    setAdPlaying(false);
-                    onDoubleCoins();
-                  }, 1500);
+                  onDoubleCoins();
+                  // Native rewarded ad manages its own dismissal; the browser
+                  // preview has no ad SDK, so reset the label shortly after.
+                  window.setTimeout(() => setAdPlaying(false), adsAvailable ? 0 : 1600);
                 }}
-                disabled={adPlaying}
+                disabled={adBusy || adPlaying}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-emerald-900/30 ring-1 ring-emerald-300/40 transition hover:brightness-110 active:scale-[0.98] disabled:opacity-70"
               >
                 <Play className="h-4 w-4 fill-white" />

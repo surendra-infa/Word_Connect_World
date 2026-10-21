@@ -13,6 +13,9 @@ import AnimatedLogo from '@/components/AnimatedLogo';
 import ProgressBar from '@/components/ProgressBar';
 import Tutorial from '@/components/Tutorial';
 import RestoreDialog from '@/components/RestoreDialog';
+import {
+  initAds, preloadAds, maybeShowInterstitial, showRewardedAd, adsAvailable,
+} from '@/game/ads';
 import { LEVELS, TOTAL_LEVELS, PLAYER_SEED, levelTargetWords, wordPoints, hintWordPoints, type Level } from '@/game/levels';
 import { shuffle } from '@/game/puzzle';
 import { themeForLevel, type Theme } from '@/game/themes';
@@ -108,6 +111,7 @@ export default function App() {
   // Hint state: a word being hinted at + which letter positions are revealed.
   const [hint, setHint] = useState<{ word: string; revealed: number[] } | null>(null);
   const [adAlert, setAdAlert] = useState(false);
+  const [adBusy, setAdBusy] = useState(false);
   // Letters revealed by hints this level (auto + paid) — drives the star rating:
   // each revealed letter costs one star; 3+ letters loses all stars.
   const [lettersRevealed, setLettersRevealed] = useState(0);
@@ -122,6 +126,11 @@ export default function App() {
   const [showTutorial, setShowTutorial] = useState(() => !tutorialDone());
   const [showRestore, setShowRestore] = useState(false);
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+
+  // Ad SDK init + first interstitial preload (native app only).
+  useEffect(() => {
+    void initAds().then(() => preloadAds());
+  }, []);
 
   const level: Level = LEVELS[Math.min(levelIndex, TOTAL_LEVELS - 1)];
   const targetWords = useMemo(() => levelTargetWords(level), [level]);
@@ -275,7 +284,7 @@ export default function App() {
 
   function pickLetter(index: number) {
     if (used[index] || status !== 'idle' || showComplete) return;
-    playSelect(picked.length);
+    playSelect();
     setUsed((u) => u.map((v, i) => (i === index ? true : v)));
     setPicked((p) => [...p, index]);
     resetAutoHintTimer();
@@ -396,11 +405,24 @@ export default function App() {
     }
   }
 
+  // Rewarded ad: watch-to-earn on the level-complete screen (native only).
+  async function watchAdForCoins(reward: number) {
+    if (adBusy || coinsDoubled) return;
+    setAdBusy(true);
+    const result = adsAvailable
+      ? await showRewardedAd()
+      : // Browser preview: simulate the reward after a short delay.
+        await new Promise<'rewarded'>((r) => window.setTimeout(() => r('rewarded'), 1500));
+    setAdBusy(false);
+    if (result === 'rewarded') {
+      setCoins((c) => c + reward);
+      setLevelCoins((c) => c + reward);
+      setCoinsDoubled(true);
+    }
+  }
+
   function doubleCoins() {
-    if (coinsDoubled) return;
-    setCoins((c) => c + levelCoins);
-    setLevelCoins((c) => c * 2);
-    setCoinsDoubled(true);
+    void watchAdForCoins(levelCoins);
   }
 
   function convertStars(amount: number) {
@@ -412,15 +434,18 @@ export default function App() {
   }
 
   function nextLevel() {
-    if (isFinal) {
-      // restart from level 1, keep coins
-      setLevelIndex(0);
-      setFoundByLevel({});
-      setHintedByLevel({});
-      setScore(0);
-    } else {
-      setLevelIndex((i) => Math.min(i + 1, TOTAL_LEVELS - 1));
-    }
+    const going = isFinal ? 0 : levelIndex + 1;
+    void maybeShowInterstitial(level.id).then(() => {
+      if (isFinal) {
+        // restart from level 1, keep coins
+        setLevelIndex(0);
+        setFoundByLevel({});
+        setHintedByLevel({});
+        setScore(0);
+      } else {
+        setLevelIndex((i) => Math.min(i + 1, TOTAL_LEVELS - 1));
+      }
+    });
   }
 
   function useHint() {
@@ -483,6 +508,7 @@ export default function App() {
           stars={stars}
           streakBonus={streakBonus}
           coinsDoubled={coinsDoubled}
+          adBusy={adBusy}
           onDoubleCoins={doubleCoins}
           nextDifficulty={
             isFinal ? null : LEVELS[Math.min(levelIndex + 1, TOTAL_LEVELS - 1)].difficulty
