@@ -127,7 +127,10 @@ export default function App() {
   const level: Level = LEVELS[Math.min(levelIndex, TOTAL_LEVELS - 1)];
   const targetWords = useMemo(() => levelTargetWords(level), [level]);
   const targetSet = useMemo(() => new Set(targetWords), [targetWords]);
-  const theme: Theme = useMemo(() => themeForLevel(level.id), [level.id]);
+  const theme: Theme = useMemo(
+    () => themeForLevel(level.id, level.name.toUpperCase()),
+    [level.id, level.name],
+  );
 
   const found = foundByLevel[level.id] ?? [];
   const hintedWords = hintedByLevel[level.id] ?? [];

@@ -167,6 +167,36 @@ export const THEMES: Theme[] = [
   },
 ];
 
-export function themeForLevel(levelId: number): Theme {
-  return THEMES[(levelId - 1) % THEMES.length];
+// Maps seed words to a fitting mood so the background matches the puzzle
+// (GARDEN -> green, OCEANS -> blue, VOLCANO -> crimson...). Anything without
+// an explicit match falls back to a stable hash pick so colors still vary.
+const WORD_THEME: Record<string, string> = {
+  GARDEN: 'Forest', CASTLE: 'Steel', PLANET: 'Night', OCEANS: 'Ocean',
+  WINDOW: 'Arctic', MASTER: 'Steel', SILVER: 'Arctic', GUITAR: 'Sunset',
+  POCKET: 'Sage', FOREST: 'Forest', BRIDGE: 'Steel', SUMMER: 'Desert',
+  WINTER: 'Arctic', SPRING: 'Sage', AUTUMN: 'Sunset', ROCKET: 'Night',
+  TEMPLE: 'Desert', MARKET: 'Sunset', DRAGON: 'Crimson', KNIGHT: 'Steel',
+  PIRATE: 'Ocean', ISLAND: 'Ocean', DESERT: 'Desert', JUNGLE: 'Forest',
+  RIVERS: 'Ocean', VALLEY: 'Sage', MEADOW: 'Sage', HARBOR: 'Ocean',
+  TUNNEL: 'Night', MARBLE: 'Arctic', VOLCANO: 'Crimson', FLOWER: 'Sage',
+  SATURN: 'Night', JUPITER: 'Crimson', WEIGHT: 'Steel', GOLDEN: 'Desert',
+  GALAXY: 'Night', BASKET: 'Sage', CANDLE: 'Sunset', DOCTOR: 'Arctic',
+  FACTORY: 'Steel', HEALTH: 'Sage', JOURNEY: 'Sunset', LADDER: 'Desert',
+  MONSTER: 'Crimson', NUMBERS: 'Steel', ORCHARD: 'Forest', PENGUIN: 'Arctic',
+  QUARTZ: 'Arctic', RHYTHM: 'Crimson', TRAVEL: 'Ocean', WIZARD: 'Night',
+  ZEBRAS: 'Sage', ANGELS: 'Arctic', BUTTON: 'Sage', CRYSTAL: 'Arctic',
+  DOLPHIN: 'Ocean', ENGINE: 'Steel', FEATHER: 'Arctic', GIRAFFE: 'Desert',
+  HARMONY: 'Emerald', KINGDOM: 'Steel', LANTERN: 'Sunset', MAGNETS: 'Steel',
+  NOODLE: 'Sunset', OCTOPUS: 'Crimson', PUZZLE: 'Emerald', RAINBOW: 'Emerald',
+  SHADOW: 'Night', TORNADO: 'Steel', UNICORN: 'Arctic', VORTEX: 'Night',
+  WHALES: 'Ocean', CIRCUS: 'Crimson', BUTTER: 'Sunset',
+};
+
+function hashTheme(levelId: number): Theme {
+  return THEMES[(levelId * 7 + 3) % THEMES.length];
+}
+
+export function themeForLevel(levelId: number, seedWord?: string): Theme {
+  const byName = seedWord ? THEMES.find((t) => t.name === WORD_THEME[seedWord]) : undefined;
+  return byName ?? hashTheme(levelId);
 }
