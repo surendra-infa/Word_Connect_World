@@ -797,10 +797,7 @@ export default function App() {
         />
       )}
 
-      <div
-        key={introSeq}
-        className="animate-screen-in relative z-10 mx-auto flex h-[100dvh] w-full max-w-md flex-col"
-      >
+      <div className="relative z-10 mx-auto flex h-[100dvh] w-full max-w-md flex-col">
         <TopBar
           score={score}
           coins={coins}

@@ -164,40 +164,38 @@ body {
   animation: fade-out-slow 2.6s ease-in forwards;
 }
 
-/* New level reveal: the whole game surface settles in softly. */
+/* New level reveal: the whole game surface fades in softly.
+   No transform — scaling the container would distort the letter
+   circle's pointer coordinate math during the animation. */
 @keyframes screen-in {
   0% {
     opacity: 0;
-    transform: scale(0.985);
   }
   100% {
     opacity: 1;
-    transform: scale(1);
   }
 }
 
 .animate-screen-in {
-  animation: screen-in 520ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation: screen-in 520ms ease-out backwards;
 }
 
-/* Circle tiles cascade in one after another when a level starts. */
+/* Circle tiles cascade in one after another when a level starts.
+   Preserves the translate(-50%,-50%) centering that the inline style sets. */
 @keyframes tile-in {
   0% {
-    transform: translate(-50%, -50%) scale(0);
     opacity: 0;
   }
-  70% {
-    transform: translate(-50%, -50%) scale(1.15);
+  60% {
     opacity: 1;
   }
   100% {
-    transform: translate(-50%, -50%) scale(1);
     opacity: 1;
   }
 }
 
 .animate-tile-in {
-  animation: tile-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  animation: tile-in 420ms ease-out backwards;
 }
 
 /* Sheet: bottom-anchored panels glide up; center dialogs keep animate-pop. */
