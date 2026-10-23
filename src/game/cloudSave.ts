@@ -3,12 +3,18 @@
 // app data / reinstall on the same device can be recovered via a restore code.
 import { createClient } from '@supabase/supabase-js';
 
-const URL = import.meta.env.VITE_SUPABASE_URL as string;
-const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-const supabase = createClient(URL, ANON, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
+// Cloud backup is optional: if the env vars are missing (e.g. a local build
+// without a .env), the game still runs with on-device saving only instead of
+// crashing at startup.
+const supabase =
+  SUPABASE_URL && SUPABASE_ANON_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      })
+    : null;
 
 const DEVICE_KEY = 'wordlink-device-id';
 
@@ -41,6 +47,7 @@ export type CloudSave = {
 };
 
 export async function uploadSave(save: CloudSave): Promise<boolean> {
+  if (!supabase) return false;
   try {
     const { error } = await supabase.from('device_saves').upsert(
       {
@@ -64,6 +71,7 @@ export async function uploadSave(save: CloudSave): Promise<boolean> {
 }
 
 export async function downloadSave(): Promise<CloudSave | null> {
+  if (!supabase) return null;
   try {
     const { data, error } = await supabase
       .from('device_saves')
@@ -91,6 +99,7 @@ export async function downloadSave(): Promise<CloudSave | null> {
 // Restore by code: lets a player recover a save on a fresh install (or a new
 // device) by typing the code shown in settings on the original install.
 export async function restoreByCode(code: string): Promise<CloudSave | null> {
+  if (!supabase) return null;
   const clean = code.trim().toUpperCase();
   if (!/^[A-Z0-9]{6}$/.test(clean)) return null;
   try {

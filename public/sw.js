@@ -1,6 +1,6 @@
 /* Word Connect World service worker: cache-first shell so the installed app opens
    instantly and works offline. */
-const CACHE = 'word-connect-world-v3';
+const CACHE = 'word-connect-world-v4';
 const SHELL = [
   './',
   './index.html',
