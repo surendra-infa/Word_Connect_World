@@ -18,6 +18,10 @@ completes the level.
 - Coins economy: hints, star conversion, rewarded ads
 - 1–3 star rating per level based on hint usage
 - Cloud save backup via a restore code — no accounts
+- Level map: replay any reached level, stars shown per level
+- Daily bonus: 7-day escalating streak of coin rewards
+- Bonus words: valid dictionary words outside the level pay 1 coin
+- Rewarded ads during play: +30 coins or one free letter
 - Native Android app (Capacitor), also runs in any browser
 
 **App identity**
@@ -69,6 +73,9 @@ src/
 │   ├── StarConversionModal.tsx # Convert score to coins
 │   ├── Tutorial.tsx            # First-launch tutorial
 │   ├── RestoreDialog.tsx       # Cloud save restore offer
+│   ├── SettingsModal.tsx       # Backup code (copy), level map, tutorial replay
+│   ├── LevelMapModal.tsx       # Paginated level grid: stars + replay
+│   ├── DailyBonusModal.tsx     # 7-day escalating daily coin streak
 │   └── Fireworks.tsx           # Celebration particle effect
 └── game/
     ├── levels.ts     # 2,500 procedural levels, difficulty cycle, player seed
@@ -141,24 +148,35 @@ Additional rules:
 
 ### 4.4 Hints (`src/App.tsx`)
 
-Two hint systems:
+Two hint systems plus two ad offers:
 
 1. **Paid hint** — button in the HintBar. Reveals an entire unfound word.
    Costs escalate within a level: 25, 50, 75, 100, ... coins (resets each
-   level). If the player can't afford it, an "watch ad for coins" alert
-   appears.
+   level). If the player can't afford it, the hint panel offers a rewarded ad
+   for +30 coins instead.
 2. **Free auto-hint** — after 30 seconds idle, reveals one letter of an
    unfound word, then one more letter every 60 seconds. Any interaction
    resets the timer. Keeps revealing the same word letter-by-letter before
    moving to the next one.
+3. **Ad for coins** — rewarded ad in the hint panel: +30 coins (native only;
+   the browser preview simulates the reward).
+4. **Ad for a letter** — rewarded ad that reveals one letter free. Each
+   revealed letter costs a star, same as other hints.
 
-### 4.5 Star rating
+### 4.5 Bonus words
 
-Each level awards 1–3 stars. Every letter revealed by hints (paid or auto)
-costs one star; 3+ revealed letters loses all stars. Displayed in the progress
-bar during play and on the Level Complete screen.
+A valid dictionary word that is not part of the level's target list pays
+**1 coin** with a "Bonus word!" flash instead of the "Not a word" shake.
+Each word is paid once per level. This removes the most common frustration in
+swipe word games and rewards vocabulary exploration.
 
-### 4.6 Coins economy
+### 4.6 Star rating
+
+Each level awards 1–3 stars. Every letter revealed by hints (paid, ad, or
+auto) costs one star; 3+ revealed letters loses all stars. Displayed in the
+progress bar during play and on the Level Complete screen.
+
+### 4.7 Coins economy
 
 | Source | Amount |
 |---|---|
@@ -166,7 +184,10 @@ bar during play and on the Level Complete screen.
 | Full seed word found | +50 |
 | Level completion | mastery bonus (15/25/40) |
 | Hard level, zero hints | +50 streak |
+| Bonus word (not in level) | +1 per unique word |
 | Rewarded ad (Level Complete) | doubles level coins, once per level |
+| Rewarded ad (hint panel) | +30 coins, or one free letter |
+| Daily bonus | day 1–7 of streak: 25/40/60/85/115/150/250 coins |
 | Star conversion | 10 score → 1 coin, via the TopBar menu |
 
 | Sink | Amount |
@@ -175,14 +196,28 @@ bar during play and on the Level Complete screen.
 
 Starting balance: 50 coins on first launch.
 
-### 4.7 Sound (`src/game/sound.ts`)
+### 4.8 Daily bonus (`src/components/DailyBonusModal.tsx`)
+
+Once per calendar day, on app open, a bonus modal offers escalating coins
+across a repeating 7-day cycle (25/40/60/85/115/150/250). Streak continues
+only if the previous day was claimed; missing a day resets to day 1. Claim
+state lives in local storage (`wordlink-daily-bonus`).
+
+### 4.9 Level map (`src/components/LevelMapModal.tsx`)
+
+Paginated grid (30 levels per page) reached from Settings. Levels up to the
+current one are replayable; later levels show a lock. Each reached level shows
+the stars earned. Replaying a level clears its found/hinted words and lets the
+player re-earn its rewards; total score and coins are kept.
+
+### 4.10 Sound (`src/game/sound.ts`)
 
 All sound effects are **synthesized** with the Web Audio API — no audio files
 to load. Tones: letter tap (pitch rises per picked letter), word valid
 (arpeggio), word invalid (descending saw), hint, coin, level-complete fanfare,
 star. A toggle in the TopBar persists to local storage.
 
-### 4.8 Themes (`src/game/themes.ts`)
+### 4.11 Themes (`src/game/themes.ts`)
 
 10 color themes (Emerald, Ocean, Sunset, Forest, Night, Desert, Crimson,
 Arctic, Sage, Steel). Each level's seed word maps to a fitting mood
@@ -207,16 +242,21 @@ The game is fully playable offline.
 
 - No accounts. Each device generates a random ID once and keeps it locally.
 - The row key is that device ID; the **restore code** is its last 6
-  characters, which the player can type into a fresh install to recover
-  progress (also works across devices).
+  characters, shown in Settings with a copy button, which the player can
+  type into a fresh install to recover progress (also works across devices).
 - On reinstall, the game checks the cloud for a backup once the tutorial is
   dismissed and offers the Restore dialog.
 - Schema: `device_id` (PK), `player_seed`, `level`, `coins`, `stars`, `stats`
-  (jsonb: found/hinted words), `updated_at`. Migration:
-  `supabase/migrations/20261021075317_create_device_saves.sql`.
-- RLS is enabled; since the app is intentionally sign-in-free, policies are
-  device-keyed rather than user-keyed. When sign-in is added later, device
-  rows should be migrated to user-owned rows at sign-up.
+  (jsonb: found/hinted words), `updated_at`. Migrations:
+  `supabase/migrations/20261021075317_create_device_saves.sql` and
+  `20261023_harden_device_saves_rate_limit`.
+- RLS is enabled. A second migration hardens access: every read/write passes
+  through a per-IP hourly rate limit (20 rows/hour, enforced by the
+  SECURITY DEFINER `claim_save_access` function against the
+  `device_save_access` ledger table, which clients cannot touch). Normal play
+  does 1 read + 1 write per row and never trips the limit; restore-code
+  brute-forcing is throttled. The rate-limit state lives in the database, not
+  app memory, so it survives across sessions.
 
 ---
 
@@ -228,6 +268,7 @@ in the native app build — the browser preview never loads the ad SDK.
 | Ad type | Trigger | Frequency cap |
 |---|---|---|
 | Rewarded | "Watch ad — double coins" on Level Complete | Once per level, reward only granted on completion |
+| Rewarded | Hint panel: +30 coins, or one free letter | Any time; reward only on completion |
 | Interstitial | Between levels, on "Next" | At most every 3rd level |
 
 - **Consent (GDPR/UMP)** — on first launch in EU/UK, Google's hosted consent

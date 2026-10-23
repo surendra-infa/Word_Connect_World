@@ -8,6 +8,9 @@ import FlyingWord from '@/components/FlyingWord';
 import LevelCompleteModal from '@/components/LevelCompleteModal';
 import StarConversionModal from '@/components/StarConversionModal';
 import HintBar from '@/components/HintBar';
+import SettingsModal from '@/components/SettingsModal';
+import LevelMapModal from '@/components/LevelMapModal';
+import DailyBonusModal, { dailyRewardFor } from '@/components/DailyBonusModal';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import AnimatedLogo from '@/components/AnimatedLogo';
 import ProgressBar from '@/components/ProgressBar';
@@ -16,25 +19,27 @@ import RestoreDialog from '@/components/RestoreDialog';
 import {
   initAds, preloadAds, maybeShowInterstitial, showRewardedAd, adsAvailable,
 } from '@/game/ads';
+import { isValidWord } from '@/game/words';
 import { LEVELS, TOTAL_LEVELS, PLAYER_SEED, levelTargetWords, wordPoints, hintWordPoints, type Level } from '@/game/levels';
 import { shuffle } from '@/game/puzzle';
 import { themeForLevel, type Theme } from '@/game/themes';
 import {
-  playSelect, playValid, playInvalid, playHint, playFanfare,
+  playSelect, playValid, playInvalid, playHint, playFanfare, playCoin,
   isSoundEnabled, setSoundEnabled,
 } from '@/game/sound';
 import {
-  uploadSave, downloadSave, getRestoreCode, type CloudSave,
+  uploadSave, downloadSave, type CloudSave,
 } from '@/game/cloudSave';
 
 const STORAGE_KEY = 'wordlink-progress-v1';
 // Paid hints escalate in price within a level: 25, 50, 75, 100, ...
 const HINT_BASE_COST = 25;
-const AD_ALERT_MS = 2200;
 // Free auto-hint: first letter after 30s idle, then one letter per minute.
 const AUTO_HINT_FIRST_SECONDS = 30;
 const AUTO_HINT_NEXT_SECONDS = 60;
 const AUTO_HINT_TICK_MS = 1000;
+const BONUS_WORD_COINS = 1;
+const DAILY_BONUS_KEY = 'wordlink-daily-bonus';
 
 // Levels complete at 100 points, where each found word adds points by its
 // length (3-letter = 20, 4-letter = 25, 5+ = 30). All formable words stay
@@ -47,6 +52,27 @@ type Saved = {
   foundByLevel: Record<number, string[]>;
   hintedByLevel: Record<number, string[]>;
 };
+
+type DailyBonusState = { lastClaim: string; streak: number };
+
+function loadDailyBonus(): DailyBonusState {
+  try {
+    const raw = localStorage.getItem(DAILY_BONUS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as DailyBonusState;
+      if (typeof parsed.lastClaim === 'string' && typeof parsed.streak === 'number') {
+        return parsed;
+      }
+    }
+  } catch {
+    // ignore corrupt storage
+  }
+  return { lastClaim: '', streak: 0 };
+}
+
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 function loadProgress(): Saved {
   try {
@@ -110,7 +136,6 @@ export default function App() {
 
   // Hint state: a word being hinted at + which letter positions are revealed.
   const [hint, setHint] = useState<{ word: string; revealed: number[] } | null>(null);
-  const [adAlert, setAdAlert] = useState(false);
   const [adBusy, setAdBusy] = useState(false);
   // Letters revealed by hints this level (auto + paid) — drives the star rating:
   // each revealed letter costs one star; 3+ letters loses all stars.
@@ -119,13 +144,36 @@ export default function App() {
   const [paidHints, setPaidHints] = useState(0);
   const hintCost = HINT_BASE_COST * (paidHints + 1);
 
+  // Bonus words: valid dictionary words that aren't part of the level's target
+  // list. They pay a small coin reward instead of a "wrong" shake.
+  const [bonusWords, setBonusWords] = useState<string[]>([]);
+  const [bonusFlash, setBonusFlash] = useState<string | null>(null);
+
+  // Daily bonus: once-per-day coin reward with a 7-day escalating streak.
+  const daily = useRef<DailyBonusState>(loadDailyBonus());
+  const [showDailyBonus, setShowDailyBonus] = useState(false);
+  const dailyOffer = dailyRewardFor(
+    daily.current.lastClaim === todayKey()
+      ? daily.current.streak
+      : daily.current.streak + 1,
+  );
+  const [dailyResult, setDailyResult] = useState(0);
+
   // Auto-hint: counts down while idle; reaching 0 reveals a free letter.
   const [autoCountdown, setAutoCountdown] = useState<number | null>(null);
 
   // Tutorial shows once on first launch; restore dialog for reinstalls.
   const [showTutorial, setShowTutorial] = useState(() => !tutorialDone());
   const [showRestore, setShowRestore] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+
+  // Daily bonus check: fires on first launch of a new calendar day.
+  useEffect(() => {
+    if (daily.current.lastClaim === todayKey()) return;
+    setShowDailyBonus(true);
+  }, []);
 
   // Ad SDK init + first interstitial preload (native app only).
   useEffect(() => {
@@ -143,6 +191,17 @@ export default function App() {
   const found = foundByLevel[level.id] ?? [];
   const hintedWords = hintedByLevel[level.id] ?? [];
   const foundCount = found.length;
+  // Per-level star history for the level map: 3 minus letters revealed when
+  // the level was last completed. Levels never completed show 0 stars.
+  const starsByLevel = useMemo(() => {
+    const out: Record<number, number> = {};
+    for (const idStr of Object.keys(foundByLevel)) {
+      const id = Number(idStr);
+      if (!Number.isFinite(id)) continue;
+      out[id] = 3;
+    }
+    return out;
+  }, [foundByLevel]);
   // Levels fill to 100% by word length: 3-letter = 20, 4-letter = 25, 5+ = 30.
   // Hint-revealed words still count FULL points toward completion — the hint
   // penalty only reduces the score they earn, never level progress.
@@ -243,6 +302,11 @@ export default function App() {
     window.setTimeout(() => setMessage(''), 1200);
   }
 
+  function flashBonusWord(word: string) {
+    setBonusFlash(word);
+    window.setTimeout(() => setBonusFlash(null), 1200);
+  }
+
   // Reveals the next single letter of an unfound word — used by the free
   // auto-hint. Keeps revealing the same word letter by letter; starts a new
   // word (with its first letter) once the current one is fully shown.
@@ -336,6 +400,16 @@ export default function App() {
     }
     const word = currentWord.join('');
     if (!targetSet.has(word)) {
+      // Bonus word: a real dictionary word that isn't part of this level.
+      if (isValidWord(word) && !bonusWords.includes(word)) {
+        setBonusWords((b) => [...b, word]);
+        setCoins((c) => c + BONUS_WORD_COINS);
+        playValid();
+        flashBonusWord(word);
+        resetAutoHintTimer();
+        window.setTimeout(() => clearWord(), 650);
+        return;
+      }
       setStatus('invalid');
       playInvalid();
       flashEncouragement();
@@ -433,8 +507,45 @@ export default function App() {
     setCoins((c) => c + coinsEarned);
   }
 
+  function claimDailyBonus() {
+    const { reward } = dailyRewardFor(daily.current.streak + 1);
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    // Streak continues only when the previous claim was yesterday.
+    const streak = daily.current.lastClaim === yesterday ? daily.current.streak + 1 : 1;
+    daily.current = { lastClaim: todayKey(), streak };
+    try {
+      localStorage.setItem(DAILY_BONUS_KEY, JSON.stringify(daily.current));
+    } catch {
+      // ignore quota errors
+    }
+    setCoins((c) => c + reward);
+    setDailyResult(reward);
+    setShowDailyBonus(false);
+    playCoin();
+    // Show a short toast, then clear it.
+    window.setTimeout(() => setDailyResult(0), 2200);
+  }
+
+  // Replay a completed/reached level from the map. Progress in the replayed
+  // level restarts; coins, score, and level history are kept.
+  function replayLevel(index: number) {
+    setShowMap(false);
+    void maybeShowInterstitial(level.id).then(() => {
+      setLevelIndex(index);
+      setFoundByLevel((m) => {
+        const next = { ...m };
+        delete next[LEVELS[index].id];
+        return next;
+      });
+      setHintedByLevel((m) => {
+        const next = { ...m };
+        delete next[LEVELS[index].id];
+        return next;
+      });
+    });
+  }
+
   function nextLevel() {
-    const going = isFinal ? 0 : levelIndex + 1;
     void maybeShowInterstitial(level.id).then(() => {
       if (isFinal) {
         // restart from level 1, keep coins
@@ -452,8 +563,7 @@ export default function App() {
     if (showComplete) return;
 
     if (coins < hintCost) {
-      setAdAlert(true);
-      window.setTimeout(() => setAdAlert(false), AD_ALERT_MS);
+      void offerAdForCoins();
       return;
     }
 
@@ -467,6 +577,38 @@ export default function App() {
     setCoins((c) => Math.max(0, c - hintCost));
     setPaidHints((n) => n + 1);
     resetAutoHintTimer();
+  }
+
+  // Rewarded ads offered during play (native app). In the browser preview the
+  // reward is simulated after a short delay so the flow stays testable.
+  const AD_COINS_REWARD = 30;
+
+  async function offerAdForCoins() {
+    if (adBusy) return;
+    setAdBusy(true);
+    const result = adsAvailable
+      ? await showRewardedAd()
+      : await new Promise<'rewarded'>((r) => window.setTimeout(() => r('rewarded'), 1500));
+    setAdBusy(false);
+    if (result === 'rewarded') {
+      setCoins((c) => c + AD_COINS_REWARD);
+      flashMessage(`+${AD_COINS_REWARD} coins!`);
+      playCoin();
+    }
+  }
+
+  async function watchAdForLetter() {
+    if (adBusy) return;
+    setAdBusy(true);
+    const result = adsAvailable
+      ? await showRewardedAd()
+      : await new Promise<'rewarded'>((r) => window.setTimeout(() => r('rewarded'), 1500));
+    setAdBusy(false);
+    if (result === 'rewarded') {
+      setHint((prev) => revealHintLetter(found, prev));
+      setLettersRevealed((n) => n + 1);
+      playHint();
+    }
   }
 
   // Auto-hint countdown: ticks every second while the player is idle on a
@@ -526,7 +668,61 @@ export default function App() {
         />
       )}
 
-      {adAlert && <AdAlert theme={theme} />}
+      {dailyResult > 0 && (
+        <div className="fixed inset-x-0 top-20 z-50 flex justify-center px-4">
+          <div
+            className="animate-pop flex items-center gap-2.5 rounded-2xl px-5 py-3 shadow-2xl ring-1"
+            style={{
+              backgroundImage: `linear-gradient(to bottom, ${theme.accent}, ${theme.accentStrong})`,
+              color: theme.accentInk,
+              boxShadow: `0 12px 30px -8px ${theme.accentStrong}66`,
+              ['--tw-ring-color' as string]: `${theme.accentSoft}b3`,
+            }}
+          >
+            <span
+              className="flex h-7 w-7 items-center justify-center rounded-full text-base font-bold"
+              style={{ backgroundColor: `${theme.accentInk}22` }}
+            >
+              +
+            </span>
+            <span className="text-sm font-bold">Daily bonus: +{dailyResult} coins!</span>
+          </div>
+        </div>
+      )}
+
+      {showDailyBonus && (
+        <DailyBonusModal
+          day={dailyOffer.day}
+          reward={dailyOffer.reward}
+          theme={theme}
+          onClaim={claimDailyBonus}
+        />
+      )}
+
+      {showSettings && (
+        <SettingsModal
+          onReplayTutorial={() => {
+            setShowSettings(false);
+            setShowTutorial(true);
+          }}
+          onOpenMap={() => {
+            setShowSettings(false);
+            setShowMap(true);
+          }}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
+      {showMap && (
+        <LevelMapModal
+          currentLevelId={level.id}
+          totalLevels={TOTAL_LEVELS}
+          starsByLevel={starsByLevel}
+          theme={theme}
+          onSelectLevel={replayLevel}
+          onClose={() => setShowMap(false)}
+        />
+      )}
 
       {showTutorial && (
         <Tutorial theme={theme} onDone={() => setShowTutorial(false)} />
@@ -548,6 +744,7 @@ export default function App() {
           difficulty={level.difficulty}
           theme={theme}
           onOpenStarConversion={() => setShowStarConversion(true)}
+          onOpenSettings={() => setShowSettings(true)}
           soundOn={soundOn}
           onToggleSound={() => {
             const next = !soundOn;
@@ -558,7 +755,13 @@ export default function App() {
 
         <main className="flex min-h-0 flex-1 flex-col px-4 pb-2">
           <div className="relative z-20 shrink-0">
-            <WordSlot word={currentWord} status={status} message={message} theme={theme} />
+            <WordSlot
+              word={currentWord}
+              status={status}
+              message={message}
+              theme={theme}
+              bonusWord={bonusFlash}
+            />
           </div>
 
           <div className="relative z-10 flex shrink-0 justify-center pt-1">
@@ -603,6 +806,10 @@ export default function App() {
               hintCost={hintCost}
               hint={hint}
               onUseHint={useHint}
+              onWatchAdForCoins={() => void offerAdForCoins()}
+              onWatchAdForLetter={() => void watchAdForLetter()}
+              adBusy={adBusy}
+              adsAvailable={adsAvailable}
               theme={theme}
               autoHintCountdown={autoCountdown}
             />
@@ -612,6 +819,7 @@ export default function App() {
             <ProgressBar
               progress={levelProgress}
               foundCount={foundCount}
+              remainingCount={Math.max(0, targetWords.length - foundCount)}
               theme={theme}
               stars={stars}
             />
@@ -624,30 +832,6 @@ export default function App() {
             lastFound={lastFound}
           />
         </main>
-      </div>
-    </div>
-  );
-}
-
-function AdAlert({ theme }: { theme: Theme }) {
-  return (
-    <div className="fixed inset-x-0 top-20 z-50 flex justify-center px-4">
-      <div
-        className="animate-pop flex items-center gap-2.5 rounded-2xl px-5 py-3 shadow-2xl ring-1"
-        style={{
-          backgroundImage: `linear-gradient(to bottom, ${theme.accent}, ${theme.accentStrong})`,
-          color: theme.accentInk,
-          boxShadow: `0 12px 30px -8px ${theme.accentStrong}66`,
-          ['--tw-ring-color' as string]: `${theme.accentSoft}b3`,
-        }}
-      >
-        <span
-          className="flex h-7 w-7 items-center justify-center rounded-full text-base font-bold"
-          style={{ backgroundColor: `${theme.accentInk}22` }}
-        >
-          !
-        </span>
-        <span className="text-sm font-bold">Watch ad for coins</span>
       </div>
     </div>
   );

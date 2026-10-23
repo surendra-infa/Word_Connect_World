@@ -106,7 +106,6 @@ export default function LetterCircle({ letters, used, onPick, onUndo, onSwipeEnd
   const points = path.map((i) => centers[i]);
   if (cursor && path.length > 0) points.push(cursor);
   const linePoints = points.map((p) => `${p.x},${p.y}`).join(' ');
-
   return (
     <div
       ref={containerRef}

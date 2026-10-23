@@ -1,6 +1,6 @@
 import type { Theme } from '@/game/themes';
 import { DIFFICULTY_COLOR, DIFFICULTY_LABEL, type Difficulty } from '@/game/levels';
-import { Star, Coins, Volume2, VolumeX } from 'lucide-react';
+import { Star, Coins, Volume2, VolumeX, Settings } from 'lucide-react';
 
 type Props = {
   score: number;
@@ -11,6 +11,7 @@ type Props = {
   soundOn: boolean;
   onToggleSound: () => void;
   onOpenStarConversion: () => void;
+  onOpenSettings: () => void;
 };
 
 export default function TopBar({
@@ -22,6 +23,7 @@ export default function TopBar({
   soundOn,
   onToggleSound,
   onOpenStarConversion,
+  onOpenSettings,
 }: Props) {
   return (
     <header className="grid shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 pt-3 pb-2">
@@ -33,6 +35,13 @@ export default function TopBar({
         >
           <Star className="h-4 w-4 fill-amber-300 text-amber-300" />
           <span className="text-sm font-semibold tabular-nums text-white">{score}</span>
+        </button>
+        <button
+          onClick={onOpenSettings}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/15 transition hover:bg-white/15 active:scale-90"
+          aria-label="Open settings"
+        >
+          <Settings className="h-4 w-4 text-white/85" />
         </button>
         <button
           onClick={onToggleSound}

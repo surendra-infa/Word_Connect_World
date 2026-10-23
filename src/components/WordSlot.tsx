@@ -5,9 +5,10 @@ type Props = {
   status: 'idle' | 'valid' | 'invalid';
   message?: string;
   theme: Theme;
+  bonusWord?: string | null;
 };
 
-export default function WordSlot({ word, status, message, theme }: Props) {
+export default function WordSlot({ word, status, message, theme, bonusWord }: Props) {
   const label =
     message ??
     (status === 'valid'
@@ -64,7 +65,7 @@ export default function WordSlot({ word, status, message, theme }: Props) {
               : 'text-white/40',
         ].join(' ')}
       >
-        {label}
+        {bonusWord ? `Bonus word! ${bonusWord} +1 coin` : label}
       </span>
     </div>
   );

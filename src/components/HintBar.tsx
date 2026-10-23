@@ -7,6 +7,10 @@ type Props = {
   hintCost: number;
   hint: { word: string; revealed: number[] } | null;
   onUseHint: () => void;
+  onWatchAdForCoins: () => void;
+  onWatchAdForLetter: () => void;
+  adBusy: boolean;
+  adsAvailable: boolean;
   theme: Theme;
   autoHintCountdown: number | null;
 };
@@ -16,6 +20,10 @@ export default function HintBar({
   hintCost,
   hint,
   onUseHint,
+  onWatchAdForCoins,
+  onWatchAdForLetter,
+  adBusy,
+  adsAvailable,
   theme,
   autoHintCountdown,
 }: Props) {
@@ -97,10 +105,31 @@ export default function HintBar({
               </p>
             )}
 
+            {adsAvailable && (
+              <div className="mt-2 space-y-1.5">
+                <button
+                  onClick={onWatchAdForCoins}
+                  disabled={adBusy}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-white/8 py-2 text-xs font-bold ring-1 ring-white/15 transition hover:bg-white/15 active:scale-[0.98] disabled:opacity-40"
+                  style={{ color: theme.accentSoft }}
+                >
+                  {adBusy ? 'Ad playing…' : 'Watch ad — +30 coins'}
+                </button>
+                <button
+                  onClick={onWatchAdForLetter}
+                  disabled={adBusy}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-white/8 py-2 text-xs font-bold ring-1 ring-white/15 transition hover:bg-white/15 active:scale-[0.98] disabled:opacity-40"
+                  style={{ color: theme.accentSoft }}
+                >
+                  {adBusy ? 'Ad playing…' : 'Watch ad — free letter'}
+                </button>
+              </div>
+            )}
+
             <button
               onClick={onUseHint}
               disabled={!canAfford}
-              className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-extrabold transition active:scale-[0.98] disabled:opacity-40"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-extrabold transition active:scale-[0.98] disabled:opacity-40"
               style={
                 canAfford
                   ? {

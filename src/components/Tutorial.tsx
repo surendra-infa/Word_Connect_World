@@ -21,7 +21,7 @@ const STEPS = [
   {
     icon: Star,
     title: 'Keep your stars',
-    body: 'Finish a level without hints to earn 3 stars. Revealed hint letters cost stars, so try words yourself first!',
+    body: 'Finish a level with no hints to earn 3 stars. Every hint-revealed letter (paid or free) costs one star — lose all 3 after three letters!',
   },
 ];
 

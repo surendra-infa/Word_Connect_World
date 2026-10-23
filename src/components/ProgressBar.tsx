@@ -4,13 +4,14 @@ import type { Theme } from '@/game/themes';
 type Props = {
   progress: number; // 0–100 weighted percent
   foundCount: number;
+  remainingCount: number;
   theme: Theme;
   stars: number; // 1–3, based on hints used this level
 };
 
 const SEGMENTS = 10;
 
-export default function ProgressBar({ progress, foundCount, theme, stars }: Props) {
+export default function ProgressBar({ progress, foundCount, remainingCount, theme, stars }: Props) {
   const pct = Math.min(100, Math.round(progress));
   const complete = pct >= 100;
 
@@ -58,7 +59,9 @@ export default function ProgressBar({ progress, foundCount, theme, stars }: Prop
         </span>
 
         <span className="text-[0.7rem] font-semibold text-white/45">
-          {foundCount} word{foundCount === 1 ? '' : 's'} found
+          {remainingCount > 0
+            ? `${remainingCount} word${remainingCount === 1 ? '' : 's'} to go`
+            : `${foundCount} found`}
         </span>
       </div>
 
