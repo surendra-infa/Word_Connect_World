@@ -98,6 +98,10 @@ export default function SettingsModal({ onReplayTutorial, onOpenMap, onClose }: 
             <span className="block text-xs text-white/55">See the tutorial again</span>
           </span>
         </button>
+
+        <p className="mt-4 text-center text-[0.65rem] font-semibold uppercase tracking-widest text-white/25">
+          Word Connect World v6
+        </p>
       </div>
     </div>
   );
