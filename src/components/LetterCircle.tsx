@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { Theme } from '@/game/themes';
 
 type Props = {
@@ -21,6 +21,24 @@ export default function LetterCircle({ letters, used, onPick, onUndo, onSwipeEnd
   // Render state for the glowing trace line (mirrors App's picked order).
   const [path, setPath] = useState<number[]>([]);
   const [cursor, setCursor] = useState<Pt | null>(null);
+
+  // RAF throttle for cursor updates — avoids re-rendering on every
+  // pointermove event (which can fire 100+ times/sec) and prevents
+  // the whole component tree from churning during a swipe.
+  const rafRef = useRef<number | null>(null);
+  const pendingCursorRef = useRef<Pt | null>(null);
+
+  const flushCursor = useCallback(() => {
+    rafRef.current = null;
+    setCursor(pendingCursorRef.current);
+  }, []);
+
+  const scheduleCursorUpdate = useCallback((pt: Pt | null) => {
+    pendingCursorRef.current = pt;
+    if (rafRef.current === null) {
+      rafRef.current = requestAnimationFrame(flushCursor);
+    }
+  }, [flushCursor]);
 
   const centers: Pt[] = [];
   for (let i = 0; i < n; i++) {
@@ -76,7 +94,7 @@ export default function LetterCircle({ letters, used, onPick, onUndo, onSwipeEnd
     if (!swipingRef.current) return;
     const pt = pointToPct(e);
     if (!pt) return;
-    setCursor(pt);
+    scheduleCursorUpdate(pt);
     const idx = hitTest(pt.x, pt.y);
     if (idx === -1) return;
     const picked = pickedRef.current;
@@ -99,6 +117,10 @@ export default function LetterCircle({ letters, used, onPick, onUndo, onSwipeEnd
     pickedRef.current = [];
     setPath([]);
     setCursor(null);
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
     onSwipeEnd();
   }
 
