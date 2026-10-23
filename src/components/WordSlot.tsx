@@ -18,10 +18,10 @@ export default function WordSlot({ word, status, message, theme, bonusWord }: Pr
         : '');
 
   return (
-    <div className="flex w-full flex-col items-center gap-2 px-4 pt-2">
+    <div className="flex w-full flex-col items-center gap-1 px-4 pt-1">
       <div
         className={[
-          'flex min-h-[4rem] items-center justify-center gap-1.5 rounded-2xl px-4 py-3 transition-all duration-200',
+          'flex min-h-[3.25rem] items-center justify-center gap-1.5 rounded-2xl px-4 py-2 transition-all duration-200',
           status === 'valid'
             ? 'ring-2'
             : status === 'invalid'
@@ -45,7 +45,7 @@ export default function WordSlot({ word, status, message, theme, bonusWord }: Pr
           word.map((ch, i) => (
             <span
               key={`${ch}-${i}`}
-              className="animate-pop flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-xl font-bold shadow-lg shadow-black/20"
+              className="animate-pop flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-lg font-bold shadow-lg shadow-black/20"
               style={{ color: theme.bgVia }}
             >
               {ch}
