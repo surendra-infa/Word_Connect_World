@@ -137,3 +137,18 @@ body {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 }
+
+/* ------------------------------------------------------------------ */
+/* Reduced motion: respect the OS accessibility setting globally.      */
+/* Decorative/loopy animations stop; entrances collapse to simple      */
+/* fades. Gameplay-critical state changes remain visible via opacity.  */
+/* ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

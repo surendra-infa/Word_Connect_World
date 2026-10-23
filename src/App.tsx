@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 import { RotateCcw, Shuffle, Trash2 } from 'lucide-react';
 import TopBar from '@/components/TopBar';
 import WordSlot from '@/components/WordSlot';
@@ -12,6 +14,7 @@ import SettingsModal from '@/components/SettingsModal';
 import LevelMapModal from '@/components/LevelMapModal';
 import DailyBonusModal, { dailyRewardFor } from '@/components/DailyBonusModal';
 import AnimatedBackground from '@/components/AnimatedBackground';
+import Fireworks from '@/components/Fireworks';
 import AnimatedLogo from '@/components/AnimatedLogo';
 import ProgressBar from '@/components/ProgressBar';
 import Tutorial from '@/components/Tutorial';
@@ -27,6 +30,9 @@ import {
   playSelect, playValid, playInvalid, playHint, playFanfare, playCoin,
   isSoundEnabled, setSoundEnabled,
 } from '@/game/sound';
+import {
+  hapticTick, hapticLight, hapticError, hapticSuccess,
+} from '@/game/haptics';
 import {
   uploadSave, downloadSave, type CloudSave,
 } from '@/game/cloudSave';
@@ -209,6 +215,9 @@ export default function App() {
   const levelProgress = Math.min(100, levelPoints);
   const isFinal = levelIndex >= TOTAL_LEVELS - 1;
   const stars = Math.max(0, 3 - lettersRevealed);
+  // Celebration effects belong to rare moments: every 10th level and the
+  // finale. Regular completes still get the full reward UI, just no fireworks.
+  const milestone = isFinal || level.id % 10 === 0;
 
   // Persist progress locally
   useEffect(() => {
@@ -257,7 +266,7 @@ export default function App() {
     setFoundByLevel(remote.foundByLevel);
     setHintedByLevel(remote.hintedByLevel);
     setShowRestore(false);
-    flashMessage('Progress restored! 🎉', 1600);
+    flashMessage('Progress restored!', 1600);
   }
 
   // Initialize / re-initialize letters when level changes
@@ -294,7 +303,7 @@ export default function App() {
     window.setTimeout(() => setMessage(''), ms);
   }
 
-  const ENCOURAGEMENT = ['💪 Almost!', '🤔 So close!', '✨ Try again!', '🌱 Keep going!', '🧠 Think...'];
+  const ENCOURAGEMENT = ['Almost!', 'So close!', 'Try again!', 'Keep going!', 'Think...'];
 
   function flashEncouragement() {
     const msg = ENCOURAGEMENT[Math.floor(Math.random() * ENCOURAGEMENT.length)];
@@ -349,6 +358,7 @@ export default function App() {
   function pickLetter(index: number) {
     if (used[index] || status !== 'idle' || showComplete) return;
     playSelect();
+    hapticTick();
     setUsed((u) => u.map((v, i) => (i === index ? true : v)));
     setPicked((p) => [...p, index]);
     resetAutoHintTimer();
@@ -393,7 +403,8 @@ export default function App() {
     if (picked.length < 3) {
       setStatus('invalid');
       playInvalid();
-      flashMessage('At least 3 letters 🙃');
+      hapticError();
+      flashMessage('At least 3 letters');
       window.setTimeout(() => setStatus('idle'), 600);
       resetAutoHintTimer();
       return;
@@ -405,6 +416,7 @@ export default function App() {
         setBonusWords((b) => [...b, word]);
         setCoins((c) => c + BONUS_WORD_COINS);
         playValid();
+        hapticLight();
         flashBonusWord(word);
         resetAutoHintTimer();
         window.setTimeout(() => clearWord(), 650);
@@ -412,6 +424,7 @@ export default function App() {
       }
       setStatus('invalid');
       playInvalid();
+      hapticError();
       flashEncouragement();
       window.setTimeout(() => setStatus('idle'), 700);
       resetAutoHintTimer();
@@ -420,7 +433,8 @@ export default function App() {
     if (found.includes(word)) {
       setStatus('invalid');
       playInvalid();
-      flashMessage('Already found 😊');
+      hapticError();
+      flashMessage('Already found');
       window.setTimeout(() => setStatus('idle'), 700);
       resetAutoHintTimer();
       return;
@@ -449,6 +463,7 @@ export default function App() {
     }));
     setStatus('valid');
     playValid();
+    hapticLight();
     setFlyingWord(word);
     setLastFound(word);
     resetAutoHintTimer();
@@ -472,6 +487,7 @@ export default function App() {
       }
       setStreakBonus(streak);
       playFanfare();
+      hapticSuccess();
       window.setTimeout(() => {
         setShowComplete(true);
         setAutoCountdown(null);
@@ -522,6 +538,7 @@ export default function App() {
     setDailyResult(reward);
     setShowDailyBonus(false);
     playCoin();
+    hapticSuccess();
     // Show a short toast, then clear it.
     window.setTimeout(() => setDailyResult(0), 2200);
   }
@@ -571,6 +588,7 @@ export default function App() {
     setHint(newHint);
     if (newHint) {
       playHint();
+      hapticLight();
       const already = hint && hint.word === newHint.word ? hint.revealed.length : 0;
       setLettersRevealed((n) => n + newHint.word.length - already);
     }
@@ -633,11 +651,35 @@ export default function App() {
     return () => window.clearInterval(id);
   }, [showComplete, status, autoCountdown === null, found, revealHintLetter]);
 
+  // Android hardware back: close the topmost popup first; only exit the app
+  // from the bare game screen. Browser (no Capacitor) is unaffected.
+  const anyPopupOpen =
+    showStarConversion || showSettings || showMap || showRestore ||
+    showTutorial || showComplete;
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let handle: import('@capacitor/core').PluginListenerHandle | null = null;
+    void CapacitorApp.addListener('backButton', () => {
+      if (showSettings) setShowSettings(false);
+      else if (showMap) setShowMap(false);
+      else if (showStarConversion) setShowStarConversion(false);
+      else if (showRestore) setShowRestore(false);
+      else if (showTutorial) setShowTutorial(false);
+      else if (showComplete) setShowComplete(false);
+      else CapacitorApp.exitApp();
+    }).then((h) => {
+      handle = h;
+    });
+    return () => void handle?.remove();
+  }, [anyPopupOpen, showSettings, showMap, showStarConversion, showRestore, showTutorial, showComplete]);
+
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden font-sans text-white">
       <AnimatedBackground theme={theme} />
-
       {flyingWord && <FlyingWord word={flyingWord} onDone={() => setFlyingWord(null)} />}
+
+      {showComplete && milestone && <Fireworks />}
 
       {showComplete && (
         <LevelCompleteModal
