@@ -134,13 +134,10 @@ body {
   }
 }
 
-/* Safe-area handling for notch / punch-hole / edge-to-edge devices.
-   max() ensures devices that report a too-small inset (common on Samsung
-   punch-hole displays and older Android WebViews) still get enough
-   clearance for the camera hole. 44px matches typical status bar height
-   plus camera hole diameter. */
+/* Edge-to-edge layout. Android immersive mode hides the system bars, so the
+   game must not reserve a fake status-bar band above the top controls. */
 #root {
-  padding-top: max(env(safe-area-inset-top), 44px);
+  padding-top: env(safe-area-inset-top);
   padding-bottom: max(env(safe-area-inset-bottom), 12px);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
