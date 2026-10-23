@@ -50,7 +50,7 @@ export default function LevelCompleteModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <Fireworks />
-      <div className="animate-pop absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="animate-fade-in absolute inset-0 bg-black/70 backdrop-blur-sm" />
 
       <div className="animate-pop relative w-full max-w-sm overflow-hidden rounded-3xl bg-gradient-to-b from-teal-800 to-emerald-900 p-7 text-center shadow-2xl ring-1 ring-white/20">
         <div className="pointer-events-none absolute -top-16 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-amber-400/30 blur-3xl" />

@@ -31,7 +31,7 @@ export default function RestoreDialog({ theme, onRestore, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+    <div className="animate-fade-in fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div
         className="w-full max-w-sm animate-pop rounded-3xl p-6 shadow-2xl ring-1"
         style={{

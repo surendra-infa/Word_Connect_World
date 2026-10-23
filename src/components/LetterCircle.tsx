@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Theme } from '@/game/themes';
 
 type Props = {
@@ -8,11 +8,21 @@ type Props = {
   onUndo: () => void;
   onSwipeEnd: () => void;
   theme: Theme;
+  // Changes whenever a fresh set of letters arrives; triggers the cascade-in.
+  entranceId: number;
 };
 
 type Pt = { x: number; y: number };
 
-export default function LetterCircle({ letters, used, onPick, onUndo, onSwipeEnd, theme }: Props) {
+export default function LetterCircle({
+  letters,
+  used,
+  onPick,
+  onUndo,
+  onSwipeEnd,
+  theme,
+  entranceId,
+}: Props) {
   const n = letters.length;
   const containerRef = useRef<HTMLDivElement>(null);
   const swipingRef = useRef(false);
@@ -21,6 +31,20 @@ export default function LetterCircle({ letters, used, onPick, onUndo, onSwipeEnd
   // Render state for the glowing trace line (mirrors App's picked order).
   const [path, setPath] = useState<number[]>([]);
   const [cursor, setCursor] = useState<Pt | null>(null);
+
+  // Cascade-in plays once per entranceId, then disables itself so toggling
+  // used/traced states mid-word never replays the entrance.
+  const [entranceActive, setEntranceActive] = useState(false);
+  useEffect(() => {
+    if (entranceId === 0) return;
+    setEntranceActive(true);
+    const t = window.setTimeout(
+      () => setEntranceActive(false),
+      420 + letters.length * 45 + 120,
+    );
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entranceId]);
 
   // RAF throttle for cursor updates — avoids re-rendering on every
   // pointermove event (which can fire 100+ times/sec) and prevents
@@ -183,34 +207,41 @@ export default function LetterCircle({ letters, used, onPick, onUndo, onSwipeEnd
           const y = centers[i].y;
           const isUsed = used[i];
           const isTraced = path.includes(i);
+          const styleProps: React.CSSProperties = {
+            left: `${x}%`,
+            top: `${y}%`,
+            transform: `translate(-50%, -50%) scale(${isTraced ? 1.12 : 1})`,
+            backgroundImage: isUsed
+              ? undefined
+              : `linear-gradient(to bottom, #ffffff, ${theme.accentSoft}33)`,
+            color: isUsed ? undefined : theme.bgVia,
+            boxShadow: isTraced
+              ? `0 0 18px ${theme.accentSoft}, 0 0 34px ${theme.accentSoft}88, 0 6px 16px rgba(0,0,0,0.35)`
+              : undefined,
+            ['--tw-ring-color' as string]: isTraced
+              ? theme.accent
+              : isUsed
+                ? 'rgba(255,255,255,0.05)'
+                : 'rgba(255,255,255,0.6)',
+          };
           return (
             <div
-              key={`${ch}-${i}`}
-              style={{
-                left: `${x}%`,
-                top: `${y}%`,
-                transform: `translate(-50%, -50%) scale(${isTraced ? 1.12 : 1})`,
-                backgroundImage: isUsed
-                  ? undefined
-                  : `linear-gradient(to bottom, #ffffff, ${theme.accentSoft}33)`,
-                color: isUsed ? undefined : theme.bgVia,
-                boxShadow: isTraced
-                  ? `0 0 18px ${theme.accentSoft}, 0 0 34px ${theme.accentSoft}88, 0 6px 16px rgba(0,0,0,0.35)`
-                  : undefined,
-                ['--tw-ring-color' as string]: isTraced
-                  ? theme.accent
-                  : isUsed
-                    ? 'rgba(255,255,255,0.05)'
-                    : 'rgba(255,255,255,0.6)',
-              }}
+              key={entranceId ? `${entranceId}-${i}` : `${ch}-${i}`}
               className={[
                 'absolute flex aspect-square h-[16%] items-center justify-center rounded-full text-[clamp(1rem,4.4vh,1.5rem)] font-extrabold transition-all duration-150 select-none z-10',
+                entranceActive && entranceId && !isUsed ? 'animate-tile-in' : '',
                 isUsed
                   ? 'scale-90 bg-white/5 text-white/20 ring-1'
                   : isTraced
                     ? 'bg-white ring-2'
                     : 'shadow-xl shadow-black/30 ring-1',
               ].join(' ')}
+              style={{
+                ...styleProps,
+                ...(entranceActive && entranceId && !isUsed
+                  ? { animationDelay: `${i * 45}ms` }
+                  : {}),
+              }}
             >
               {ch}
             </div>

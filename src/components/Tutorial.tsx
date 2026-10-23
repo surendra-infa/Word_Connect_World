@@ -38,9 +38,9 @@ export default function Tutorial({ theme, onDone }: Props) {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/60 backdrop-blur-sm">
+    <div className="animate-fade-in fixed inset-0 z-[80] flex items-end justify-center bg-black/60 backdrop-blur-sm">
       <div
-        className="mx-4 mb-8 w-full max-w-sm animate-pop rounded-3xl p-6 shadow-2xl ring-1"
+        className="mx-4 mb-8 w-full max-w-sm animate-sheet-in rounded-3xl p-6 shadow-2xl ring-1"
         style={{
           backgroundImage: `linear-gradient(to bottom right, ${theme.accent}, ${theme.accentStrong})`,
           color: theme.accentInk,
@@ -48,7 +48,8 @@ export default function Tutorial({ theme, onDone }: Props) {
           ['--tw-ring-color' as string]: `${theme.accentSoft}aa`,
         }}
       >
-        <div className="flex items-center gap-3">
+        <div key={step} className="animate-rise-in">
+          <div className="flex items-center gap-3">
           <span
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
             style={{ backgroundColor: `${theme.accentInk}22` }}
@@ -64,6 +65,7 @@ export default function Tutorial({ theme, onDone }: Props) {
         </div>
 
         <p className="mt-4 text-sm font-medium leading-relaxed opacity-90">{current.body}</p>
+        </div>
 
         <div className="mt-5 flex items-center justify-between">
           <div className="flex gap-1.5">

@@ -114,6 +114,136 @@ body {
   }
 }
 
+/* ---------- Level intro (chapter card between levels) ---------- */
+@keyframes rise-in {
+  0% {
+    transform: translateY(18px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-rise-in {
+  animation: rise-in 480ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes count-up {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-count-up {
+  animation: count-up 560ms cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
+}
+
+/* Curtain fades out to reveal the fresh puzzle underneath. */
+@keyframes fade-out-slow {
+  0%,
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-fade-out-slow {
+  animation: fade-out-slow 2.6s ease-in forwards;
+}
+
+/* New level reveal: the whole game surface settles in softly. */
+@keyframes screen-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-screen-in {
+  animation: screen-in 520ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* Circle tiles cascade in one after another when a level starts. */
+@keyframes tile-in {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-tile-in {
+  animation: tile-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+/* Sheet: bottom-anchored panels glide up; center dialogs keep animate-pop. */
+@keyframes sheet-in {
+  0% {
+    transform: translateY(48px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-sheet-in {
+  animation: sheet-in 300ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 200ms ease-out backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise-in,
+  .animate-count-up,
+  .animate-screen-in,
+  .animate-tile-in,
+  .animate-sheet-in,
+  .animate-fade-in {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+  }
+  .animate-fade-out-slow {
+    animation-duration: 0.4s !important;
+  }
+}
+
 /* ---------- Fireworks ---------- */
 .firework-particle {
   position: absolute;

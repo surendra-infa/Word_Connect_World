@@ -37,7 +37,7 @@ export default function DailyBonusModal({
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-      <div className="animate-pop absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="animate-fade-in absolute inset-0 bg-black/70 backdrop-blur-sm" />
 
       <div
         className="animate-pop relative w-full max-w-sm rounded-3xl p-6 text-center shadow-2xl ring-1"

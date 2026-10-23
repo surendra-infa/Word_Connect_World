@@ -33,7 +33,7 @@ export default function LevelMapModal({
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-      <div className="animate-pop absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="animate-fade-in absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       <div className="animate-pop relative flex max-h-[80vh] w-full max-w-sm flex-col overflow-hidden rounded-3xl bg-gradient-to-b from-slate-800 to-slate-900 shadow-2xl ring-1 ring-white/20">
         <div className="flex shrink-0 items-center justify-between px-5 pt-5">

@@ -12,6 +12,7 @@ import StarConversionModal from '@/components/StarConversionModal';
 import HintBar from '@/components/HintBar';
 import SettingsModal from '@/components/SettingsModal';
 import LevelMapModal from '@/components/LevelMapModal';
+import LevelIntro from '@/components/LevelIntro';
 import DailyBonusModal, { dailyRewardFor } from '@/components/DailyBonusModal';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import Fireworks from '@/components/Fireworks';
@@ -115,6 +116,7 @@ export default function App() {
   );
 
   const [levelIndex, setLevelIndex] = useState(saved.current.levelIndex);
+  const [showIntro, setShowIntro] = useState(true);
   const [score, setScore] = useState(saved.current.score);
   const [coins, setCoins] = useState(saved.current.coins);
   const [foundByLevel, setFoundByLevel] = useState<Record<number, string[]>>(
@@ -174,6 +176,10 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+  // Level intro: shown on app start and every time the level changes.
+  // Bumped on every level entry so re-entering the SAME level id (replays)
+  // still triggers a fresh intro.
+  const [introSeq, setIntroSeq] = useState(0);
 
   // Daily bonus check: fires on first launch of a new calendar day.
   useEffect(() => {
@@ -285,6 +291,8 @@ export default function App() {
     setLettersRevealed(0);
     setPaidHints(0);
     setAutoCountdown(AUTO_HINT_FIRST_SECONDS);
+    setShowIntro(true);
+    setIntroSeq((n) => n + 1);
     // score is intentionally read at level-entry only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level.id]);
@@ -356,7 +364,7 @@ export default function App() {
   }
 
   function pickLetter(index: number) {
-    if (used[index] || status !== 'idle' || showComplete) return;
+    if (used[index] || status !== 'idle' || showComplete || showIntro) return;
     playSelect();
     hapticTick();
     setUsed((u) => u.map((v, i) => (i === index ? true : v)));
@@ -577,7 +585,7 @@ export default function App() {
   }
 
   function useHint() {
-    if (showComplete) return;
+    if (showComplete || showIntro) return;
 
     if (coins < hintCost) {
       void offerAdForCoins();
@@ -632,7 +640,7 @@ export default function App() {
   // Auto-hint countdown: ticks every second while the player is idle on a
   // non-completed level. Resets on any interaction; fires a free hint at 0.
   useEffect(() => {
-    if (showComplete || status === 'valid' || autoCountdown === null) return;
+    if (showComplete || showIntro || status === 'valid' || autoCountdown === null) return;
 
     const id = window.setInterval(() => {
       setAutoCountdown((c) => {
@@ -655,7 +663,7 @@ export default function App() {
   // from the bare game screen. Browser (no Capacitor) is unaffected.
   const anyPopupOpen =
     showStarConversion || showSettings || showMap || showRestore ||
-    showTutorial || showComplete;
+    showTutorial || showComplete || showIntro;
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -667,12 +675,13 @@ export default function App() {
       else if (showRestore) setShowRestore(false);
       else if (showTutorial) setShowTutorial(false);
       else if (showComplete) setShowComplete(false);
+      else if (showIntro) setShowIntro(false);
       else CapacitorApp.exitApp();
     }).then((h) => {
       handle = h;
     });
     return () => void handle?.remove();
-  }, [anyPopupOpen, showSettings, showMap, showStarConversion, showRestore, showTutorial, showComplete]);
+  }, [anyPopupOpen, showSettings, showMap, showStarConversion, showRestore, showTutorial, showComplete, showIntro]);
 
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden font-sans text-white">
@@ -680,6 +689,16 @@ export default function App() {
       {flyingWord && <FlyingWord word={flyingWord} onDone={() => setFlyingWord(null)} />}
 
       {showComplete && milestone && <Fireworks />}
+
+      {showIntro && (
+        <LevelIntro
+          key={introSeq}
+          level={level}
+          theme={theme}
+          isFinal={isFinal}
+          onStart={() => setShowIntro(false)}
+        />
+      )}
 
       {showComplete && (
         <LevelCompleteModal
@@ -778,7 +797,10 @@ export default function App() {
         />
       )}
 
-      <div className="relative z-10 mx-auto flex h-[100dvh] w-full max-w-md flex-col">
+      <div
+        key={introSeq}
+        className="animate-screen-in relative z-10 mx-auto flex h-[100dvh] w-full max-w-md flex-col"
+      >
         <TopBar
           score={score}
           coins={coins}
@@ -818,6 +840,7 @@ export default function App() {
               onUndo={removeLast}
               onSwipeEnd={swipeEnd}
               theme={theme}
+              entranceId={introSeq}
             />
           </div>
 

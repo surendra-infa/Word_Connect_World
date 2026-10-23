@@ -37,12 +37,12 @@ export default function HintBar({
       {open && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/30"
+            className="animate-fade-in fixed inset-0 z-40 bg-black/30"
             onClick={() => setOpen(false)}
           />
           <div className="fixed inset-x-0 bottom-28 z-50 flex justify-center px-4">
             <div
-              className="animate-pop w-[min(20rem,calc(100vw-2rem))] rounded-2xl bg-white/10 p-4 shadow-2xl ring-1 ring-white/15 backdrop-blur-md"
+              className="animate-sheet-in w-[min(20rem,calc(100vw-2rem))] rounded-2xl bg-white/10 p-4 shadow-2xl ring-1 ring-white/15 backdrop-blur-md"
               style={{ boxShadow: `0 -8px 30px rgba(0,0,0,0.4)` }}
             >
             <div className="mb-3 flex items-center justify-between">
