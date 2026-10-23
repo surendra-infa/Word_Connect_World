@@ -68,8 +68,8 @@ export default function LetterCircle({
   for (let i = 0; i < n; i++) {
     const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
     centers.push({
-      x: 50 + 34 * Math.cos(angle),
-      y: 50 + 34 * Math.sin(angle),
+      x: 50 + 38 * Math.cos(angle),
+      y: 50 + 38 * Math.sin(angle),
     });
   }
 
@@ -87,8 +87,8 @@ export default function LetterCircle({
         best = i;
       }
     }
-    // Tile diameter is 16% of the container height; add slack for fingers.
-    const radius = rect.height * (0.08 + 0.04);
+    // Tile diameter is 19% of the container height; add slack for fingers.
+    const radius = rect.height * (0.095 + 0.045);
     return bestDist <= radius ? best : -1;
   }
 
@@ -228,7 +228,7 @@ export default function LetterCircle({
             <div
               key={entranceId ? `${entranceId}-${i}` : `${ch}-${i}`}
               className={[
-                'absolute flex aspect-square h-[16%] items-center justify-center rounded-full text-[clamp(1rem,4.4vh,1.5rem)] font-extrabold transition-all duration-150 select-none z-10',
+                'absolute flex aspect-square h-[19%] items-center justify-center rounded-full text-[clamp(1.1rem,5vh,1.75rem)] font-extrabold transition-all duration-150 select-none z-10',
                 entranceActive && entranceId && !isUsed ? 'animate-tile-in' : '',
                 isUsed
                   ? 'scale-90 bg-white/5 text-white/20 ring-1'

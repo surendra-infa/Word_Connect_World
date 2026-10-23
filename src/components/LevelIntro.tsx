@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { Play } from 'lucide-react';
 import type { Theme } from '@/game/themes';
 import { DIFFICULTY_COLOR, DIFFICULTY_LABEL, type Level } from '@/game/levels';
 
@@ -12,8 +11,9 @@ type Props = {
 
 const DURATION_MS = 2600;
 
-// Full-screen chapter card shown when a new level begins. Drapes the level
-// number, theme name, and difficulty, then reveals the puzzle underneath.
+// Full-screen chapter card shown when a new level begins. Shows only the
+// level number and difficulty — never the level name, which is the puzzle's
+// answer (the seed word itself).
 export default function LevelIntro({ level, theme, isFinal, onStart }: Props) {
   const startRef = useRef(onStart);
   startRef.current = onStart;
@@ -62,18 +62,10 @@ export default function LevelIntro({ level, theme, isFinal, onStart }: Props) {
           }}
         />
 
-        <p
-          className="mt-4 animate-rise-in text-xl font-extrabold uppercase tracking-[0.2em]"
-          style={{ color: theme.accentSoft, animationDelay: '300ms' }}
-        >
-          {level.name}
-        </p>
-
         <div
           className="mt-3 flex items-center gap-2 animate-rise-in"
-          style={{ animationDelay: '420ms' }}
-        >
-          <span
+          style={{ animationDelay: '300ms' }}
+        >          <span
             className="rounded-full px-3 py-1 text-[0.65rem] font-bold uppercase tracking-wider"
             style={{
               color: DIFFICULTY_COLOR[level.difficulty],
@@ -83,20 +75,7 @@ export default function LevelIntro({ level, theme, isFinal, onStart }: Props) {
           >
             {DIFFICULTY_LABEL[level.difficulty]}
           </span>
-          <span className="text-xs font-semibold text-white/50">
-            {level.letters.length} letters
-          </span>
         </div>
-
-        <button
-          onClick={() => startRef.current()}
-          className="pointer-events-auto mt-9 flex animate-rise-in items-center gap-2 rounded-full bg-white/90 px-8 py-3 text-sm font-extrabold shadow-xl transition hover:bg-white active:scale-95"
-          style={{ color: theme.accentStrong, animationDelay: '560ms' }}
-          aria-label="Start level"
-        >
-          <Play className="h-4 w-4 fill-current" />
-          Play
-        </button>
       </div>
     </div>
   );

@@ -100,7 +100,7 @@ export default function SettingsModal({ onReplayTutorial, onOpenMap, onClose }: 
         </button>
 
         <p className="mt-4 text-center text-[0.65rem] font-semibold uppercase tracking-widest text-white/25">
-          Word Connect World v6
+          Word Connect World v7
         </p>
       </div>
     </div>

@@ -38,7 +38,7 @@ body {
 }
 
 .logo-glyph {
-  height: 4.2rem;
+  height: 3rem;
   width: auto;
   display: block;
   user-select: none;
@@ -47,7 +47,7 @@ body {
 
 @media (max-height: 700px) {
   .logo-glyph {
-    height: 3.4rem;
+    height: 2.6rem;
   }
 }
 
