@@ -134,10 +134,14 @@ body {
   }
 }
 
-/* Safe-area handling for notch / edge-to-edge devices */
+/* Safe-area handling for notch / punch-hole / edge-to-edge devices.
+   max() ensures devices that report a too-small inset (common on Samsung
+   punch-hole displays and older Android WebViews) still get enough
+   clearance for the camera hole. 44px matches typical status bar height
+   plus camera hole diameter. */
 #root {
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-top: max(env(safe-area-inset-top), 44px);
+  padding-bottom: max(env(safe-area-inset-bottom), 12px);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 }
