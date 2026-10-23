@@ -34,5 +34,30 @@
       }
     </script>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Startup crash trap: if the game fails to boot, show the reason on
+      // screen instead of a blank background so it can be reported.
+      (function () {
+        var shown = false;
+        function show(msg) {
+          if (shown) return;
+          shown = true;
+          var el = document.createElement('pre');
+          el.style.cssText =
+            'position:fixed;inset:auto 12px 12px 12px;z-index:99999;max-height:55%;' +
+            'overflow:auto;margin:0;padding:12px;background:#111;color:#f88;' +
+            'font:12px/1.5 monospace;white-space:pre-wrap;border-radius:8px;';
+          el.textContent = 'Startup error:\n' + msg;
+          document.body.appendChild(el);
+        }
+        window.addEventListener('error', function (e) {
+          show((e.message || 'Unknown error') + (e.filename ? '\n' + e.filename + ':' + e.lineno : ''));
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e.reason;
+          show(r && r.stack ? r.stack : String(r));
+        });
+      })();
+    </script>
   </body>
 </html>
