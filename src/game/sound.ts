@@ -72,10 +72,9 @@ export function playTap() {
   tone({ freq: 520, dur: 0.07, type: 'triangle', gain: 0.05 });
 }
 
-export function playSelect() {
+export function playSelect(position = 0) {
   // Pitch rises with each picked letter position for a satisfying swipe.
-  const n = arguments[0] as number | undefined;
-  const freq = 440 * Math.pow(2, ((n ?? 0) % 8) / 12);
+  const freq = 440 * Math.pow(2, (position % 8) / 12);
   tone({ freq, dur: 0.08, type: 'triangle', gain: 0.05 });
 }
 
