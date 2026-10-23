@@ -25,23 +25,29 @@ body {
 /* ---------- Animated 3D logo ---------- */
 .logo-stage {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: center;
-  gap: 0.02em;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 800;
+  gap: 0;
   cursor: pointer;
   perspective: 600px;
   transform: rotateZ(calc(var(--logo-tilt, 0) * 4deg));
   transition: transform 120ms linear;
   touch-action: manipulation;
+  filter: drop-shadow(0 14px 18px rgba(4, 47, 44, 0.45));
 }
 
 .logo-letter {
-  font-size: 3.4rem;
-  line-height: 1;
+  height: 4.2rem;
   display: inline-block;
   animation: logo-drop 620ms cubic-bezier(0.34, 1.4, 0.64, 1) backwards;
+}
+
+.logo-glyph {
+  height: 100%;
+  width: auto;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 @keyframes logo-drop {

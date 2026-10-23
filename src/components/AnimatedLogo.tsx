@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 
 const LETTERS = [
-  { ch: 'W', from: '#fcd34d', to: '#f59e0b', depth: '#b45309' },
-  { ch: 'C', from: '#6ee7b7', to: '#10b981', depth: '#047857' },
-  { ch: 'W', from: '#7dd3fc', to: '#0ea5e9', depth: '#0369a1' },
+  { src: '/letter-w-amber.webp', alt: 'W' },
+  { src: '/letter-c-teal.webp', alt: 'C' },
+  { src: '/letter-w-green.webp', alt: 'W' },
 ];
 
-// 3D animated WCW letters: staggered drop-in on mount, endless breathing
-// idle, spring reaction on tap, and a slight rock driven by device tilt.
+// 3D animated WCW letters (image glyphs): staggered drop-in on mount,
+// endless breathing idle, spring reaction on tap, and a slight rock driven
+// by device tilt.
 export default function AnimatedLogo() {
   const [tapped, setTapped] = useState(false);
   const [tilt, setTilt] = useState(0);
@@ -52,17 +53,7 @@ export default function AnimatedLogo() {
               animationDuration: `${3.2 + i * 0.4}s`,
             }}
           >
-            <span
-              className="logo-glyph"
-              style={
-                {
-                  color: l.from,
-                  textShadow: `0 1px 0 ${l.depth}, 0 2px 0 ${l.depth}, 0 3px 0 ${l.depth}, 0 4px 0 ${l.depth}, 0 6px 10px ${l.depth}99`,
-                } as CSSProperties
-              }
-            >
-              {l.ch}
-            </span>
+            <img className="logo-glyph" src={l.src} alt={l.alt} draggable={false} />
           </span>
         </span>
       ))}
