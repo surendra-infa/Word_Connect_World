@@ -25,7 +25,7 @@ export default function LevelIntro({ level, theme, isFinal, onStart }: Props) {
 
   return (
     <div
-      className="animate-fade-out-slow fixed inset-0 z-[60] flex items-center justify-center overflow-hidden"
+      className="animate-fade-out-slow pointer-events-none fixed inset-0 z-[60] flex items-center justify-center overflow-hidden"
       style={{
         backgroundImage: `linear-gradient(160deg, ${theme.bgFrom}, ${theme.bgVia} 50%, ${theme.bgTo})`,
       }}
@@ -90,7 +90,7 @@ export default function LevelIntro({ level, theme, isFinal, onStart }: Props) {
 
         <button
           onClick={() => startRef.current()}
-          className="mt-9 flex animate-rise-in items-center gap-2 rounded-full bg-white/90 px-8 py-3 text-sm font-extrabold shadow-xl transition hover:bg-white active:scale-95"
+          className="pointer-events-auto mt-9 flex animate-rise-in items-center gap-2 rounded-full bg-white/90 px-8 py-3 text-sm font-extrabold shadow-xl transition hover:bg-white active:scale-95"
           style={{ color: theme.accentStrong, animationDelay: '560ms' }}
           aria-label="Start level"
         >

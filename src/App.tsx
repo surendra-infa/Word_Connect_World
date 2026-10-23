@@ -293,6 +293,10 @@ export default function App() {
     setAutoCountdown(AUTO_HINT_FIRST_SECONDS);
     setShowIntro(true);
     setIntroSeq((n) => n + 1);
+    // Failsafe: clear the intro even if the LevelIntro component's own
+    // timer somehow fails to fire.
+    const failsafe = window.setTimeout(() => setShowIntro(false), 2800);
+    return () => window.clearTimeout(failsafe);
     // score is intentionally read at level-entry only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level.id]);
@@ -364,7 +368,7 @@ export default function App() {
   }
 
   function pickLetter(index: number) {
-    if (used[index] || status !== 'idle' || showComplete || showIntro) return;
+    if (used[index] || status !== 'idle' || showComplete) return;
     playSelect();
     hapticTick();
     setUsed((u) => u.map((v, i) => (i === index ? true : v)));
@@ -585,7 +589,7 @@ export default function App() {
   }
 
   function useHint() {
-    if (showComplete || showIntro) return;
+    if (showComplete) return;
 
     if (coins < hintCost) {
       void offerAdForCoins();
@@ -640,7 +644,7 @@ export default function App() {
   // Auto-hint countdown: ticks every second while the player is idle on a
   // non-completed level. Resets on any interaction; fires a free hint at 0.
   useEffect(() => {
-    if (showComplete || showIntro || status === 'valid' || autoCountdown === null) return;
+    if (showComplete || status === 'valid' || autoCountdown === null) return;
 
     const id = window.setInterval(() => {
       setAutoCountdown((c) => {
